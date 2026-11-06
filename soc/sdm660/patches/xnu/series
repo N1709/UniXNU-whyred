@@ -1,0 +1,3 @@
+# SDM660/SDM636 family XNU patches, one file name per line, in apply order.
+# Empty: no shared patch is required yet. Board patches live in
+# patches/xnu/series of the device repository.
