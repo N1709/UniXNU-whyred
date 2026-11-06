@@ -1,0 +1,12 @@
+"schema_version" = 2
+
+["soc"]
+"name" = "sdm660"
+"description" = "Qualcomm Snapdragon 660/636 (SDM660/SDM636), Kryo 260, ARMv8.0"
+"source_repository" = "https://github.com/Whyred-Dev/android_kernel_xiaomi_sdm660"
+"source_revision" = "d85fa37dba33a7ad7a4f5435930cae06df18f7db"
+
+# Shared controller resources only. The board enables memory, reservations,
+# peripherals and CPU clusters in dts/whyred.dts.
+["components"]
+"include" = ["ArmCpu", "ArmDTPlatform"]
