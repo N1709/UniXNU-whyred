@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Xiaomi Redmi Note 5 (whyred), Qualcomm SDM636.
+//
+// Hardware source: Whyred-Dev/android_kernel_xiaomi_sdm660, lineage-15.1,
+// d85fa37dba33a7ad7a4f5435930cae06df18f7db.
+//   sdm636.dtsi          qcom,msm-id = <345 0x0>
+//   sdm660_whyred.dtsi   RAM, splash reservation, eMMC, UART, GIC, timer
+//
+// The shared SoC layer is soc/sdm660/dts/sdm660.dtsi (include_dirs = ["soc:dts"]).
+
+/dts-v1/;
+/include/ "sdm660.dtsi"
+
+/ {
+    model = "Xiaomi Redmi Note 5 (whyred)";
+    compatible = "xiaomi,whyred", "qcom,sdm636", "qcom,sdm660";
+
+    // Low DRAM bank present on every whyred variant (3/4/6 GB). The high bank
+    // starts at 0x100000000 and is not needed for the first boot. The ADT
+    // handoff requires exactly one contiguous memory range.
+    memory@80000000 {
+        device_type = "memory";
+        reg = <0x0 0x80000000 0x0 0x80000000>;
+    };
+
+    // Contiguous splash memory left by the vendor bootloader. The value is the
+    // same one the previous whyred XNU work used (0x9d400000 + 36 MiB).
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        splash_region: splash@9d400000 {
+            reg = <0x0 0x9d400000 0x0 0x2400000>;
+            label = "cont_splash_region";
+            no-map;
+        };
+    };
+};
