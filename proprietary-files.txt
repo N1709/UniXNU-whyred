@@ -1,0 +1,17 @@
+# Required firmware inputs for whyred.
+# Format: relative path | source archive member | SHA-256 | consumer
+#
+# No entry is active yet: the official fastboot archive is not pinned and no
+# whyred UEFI port exists. Fill this file together with [firmware.image] in
+# board.toml, and delete the archive after extraction; extracted firmware never
+# enters this repository.
+#
+# Planned inputs (names from the SDM636 vendor image and DT):
+#   modem / mba / mdt image             -> modem firmware, not used by the first boot
+#   adsp / adspr.jsn / adspua.jsn       -> ADSP firmware, audio (later)
+#   wcn3990 / WCNSS firmware            -> WCN3990 Wi-Fi/Bluetooth (later)
+#   a509_zap / a530_pfp / a530_pm4      -> Adreno 509 microcode (later)
+#   synaptics DSX firmware              -> touch controller (later)
+#
+# Consumers must be selected components or board package code before an entry
+# is added.
