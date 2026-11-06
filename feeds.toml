@@ -1,0 +1,23 @@
+# Whyred device repository sources.
+#
+# SDM660/SDM636 shared support currently lives in this repository under
+# soc/sdm660. When UniXNU-sdm660-common is published, replace this local entry
+# with the pinned git source from docs/porting/soc-support.md; the board needs
+# no other change.
+[[source]]
+name = "sdm660"
+kind = "soc"
+local = "soc/sdm660"
+
+# Provenance pin for the vendor device tree used to author board.toml,
+# soc/sdm660/dts/sdm660.dtsi and dts/whyred.dts. It is a reference source and
+# is not part of the build. sdm636_whyred.dtsi carries qcom,msm-id = <345 0x0>.
+# Path note: arch/arm64/boot/dts/qcom is a symlink to ../../../../arch/arm/boot/dts/qcom
+# in this tree, so the real directory is pinned to keep the sparse checkout valid.
+[[source]]
+name = "whyred-android-dt"
+kind = "refer"
+git = "https://github.com/Whyred-Dev/android_kernel_xiaomi_sdm660.git"
+ref = "lineage-15.1"
+commit = "d85fa37dba33a7ad7a4f5435930cae06df18f7db"
+path = "arch/arm/boot/dts/qcom"
