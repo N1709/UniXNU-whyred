@@ -1,0 +1,30 @@
+# Board kernel configuration for whyred (SDM636, Kryo 260 / ARMv8.0).
+#
+# config_fragments already supply arch:configs/common.config,
+# soc:configs/sdm660.config and os:configs/ipados.config. This file only carries
+# the board overrides, which are applied last.
+#
+# Kryo 260 is ARMv8.0 and has no PSTATE.PAN. With PAN enabled the kernel raises
+# an undefined instruction on its first "msr pan, #1" before arm_vm_init.
+CONFIG_XNU_NATIVE_PAN=n
+
+# The boot path reaches the device-tree platform expert and the console first.
+# Storage, display, GPU and input drivers are separate bring-up steps.
+CONFIG_XNU_ARM_DT_PLATFORM=y
+CONFIG_XNU_ARMCPU=y
+CONFIG_XNU_SOURCE_CORECRYPTO14=y
+CONFIG_XNU_SOURCE_PTHREAD=y
+CONFIG_XNU_NATIVE_AES=y
+CONFIG_XNU_NATIVE_ARCH_TIMER=y
+CONFIG_XNU_TRUST_CACHE_RUNTIME=y
+CONFIG_XNU_SOURCE_MOCKFS=y
+CONFIG_XNU_NATIVE_CS_HASH_CACHE=y
+CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
+
+# whyred boots from eMMC (sdhc_1 at 0xc0c4000), not UFS. The SoC ships an
+# Adreno 509, which no native driver supports. The vendor MDP/DSI stack is not
+# driven by XNU yet. The first milestone uses the firmware framebuffer only.
+CONFIG_XNU_NATIVE_UFS=n
+CONFIG_XNU_NATIVE_ADRENO=n
+CONFIG_XNU_NATIVE_MOBILE_DISPLAY=n
+CONFIG_XNU_ARMVIRT_PLATFORM=n
