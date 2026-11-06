@@ -1,0 +1,145 @@
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Minimal Qualcomm SDM660/SDM636 hardware description for UniXNU.
+//
+// Values are taken from the whyred vendor device tree
+// (Whyred-Dev/android_kernel_xiaomi_sdm660, lineage-15.1,
+// d85fa37dba33a7ad7a4f5435930cae06df18f7db):
+//   sdm660_whyred.dtsi   CPU topology, GIC, generic timer, sdhc_1, UART
+//   sdm636.dtsi          qcom,msm-id = <345 0x0>
+//
+// This file owns resources shared by SDM660/SDM636 boards. The board DTS owns
+// RAM, reserved memory, enabled peripherals and product identity.
+
+/ {
+    compatible = "qcom,sdm660";
+    #address-cells = <2>;
+    #size-cells = <2>;
+    interrupt-parent = <&intc>;
+
+    psci {
+        compatible = "arm,psci-1.0";
+        method = "smc";
+    };
+
+    cpus {
+        #address-cells = <2>;
+        #size-cells = <0>;
+        timebase-frequency = <19200000>;
+
+        // Kryo 260 Gold: Cortex-A73 derived, MPIDR 0x100..0x103.
+        cpu0: cpu@100 {
+            device_type = "cpu";
+            compatible = "qcom,kryo260", "arm,cortex-a73", "ARM,v8";
+            reg = <0x0 0x100>;
+            enable-method = "psci";
+            unixnu,cluster-type = "P";
+        };
+
+        cpu1: cpu@101 {
+            device_type = "cpu";
+            compatible = "qcom,kryo260", "arm,cortex-a73", "ARM,v8";
+            reg = <0x0 0x101>;
+            enable-method = "psci";
+            unixnu,cluster-type = "P";
+        };
+
+        cpu2: cpu@102 {
+            device_type = "cpu";
+            compatible = "qcom,kryo260", "arm,cortex-a73", "ARM,v8";
+            reg = <0x0 0x102>;
+            enable-method = "psci";
+            unixnu,cluster-type = "P";
+        };
+
+        cpu3: cpu@103 {
+            device_type = "cpu";
+            compatible = "qcom,kryo260", "arm,cortex-a73", "ARM,v8";
+            reg = <0x0 0x103>;
+            enable-method = "psci";
+            unixnu,cluster-type = "P";
+        };
+
+        // Kryo 260 Silver: Cortex-A53 derived, MPIDR 0x0..0x3.
+        cpu4: cpu@0 {
+            device_type = "cpu";
+            compatible = "qcom,kryo260", "arm,cortex-a53", "ARM,v8";
+            reg = <0x0 0x0>;
+            enable-method = "psci";
+            unixnu,cluster-type = "E";
+        };
+
+        cpu5: cpu@1 {
+            device_type = "cpu";
+            compatible = "qcom,kryo260", "arm,cortex-a53", "ARM,v8";
+            reg = <0x0 0x1>;
+            enable-method = "psci";
+            unixnu,cluster-type = "E";
+        };
+
+        cpu6: cpu@2 {
+            device_type = "cpu";
+            compatible = "qcom,kryo260", "arm,cortex-a53", "ARM,v8";
+            reg = <0x0 0x2>;
+            enable-method = "psci";
+            unixnu,cluster-type = "E";
+        };
+
+        cpu7: cpu@3 {
+            device_type = "cpu";
+            compatible = "qcom,kryo260", "arm,cortex-a53", "ARM,v8";
+            reg = <0x0 0x3>;
+            enable-method = "psci";
+            unixnu,cluster-type = "E";
+        };
+    };
+
+    timer {
+        compatible = "arm,armv8-timer";
+        interrupts = <1 1 0xf08>, <1 2 0xf08>, <1 3 0xf08>, <1 0 0xf08>;
+        clock-frequency = <19200000>;
+    };
+
+    soc {
+        compatible = "simple-bus";
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        // GICv3: GICD 0x17a00000 + 64 KiB, GICR 0x17b00000 + 8 x 128 KiB.
+        // ArmCpu requires arm-io/intc to carry exactly this compatible and two
+        // (address, size) register pairs, plus redistributor-stride = 0x20000.
+        intc: interrupt-controller@17a00000 {
+            compatible = "arm,gic-v3";
+            reg = <0x0 0x17a00000 0x0 0x10000>,
+                  <0x0 0x17b00000 0x0 0x100000>;
+            #interrupt-cells = <3>;
+            #address-cells = <0>;
+            #size-cells = <0>;
+            interrupt-controller;
+            redistributor-stride = <0x0 0x20000>;
+            unixnu,adt-name = "intc";
+        };
+
+        // eMMC controller: sdhc_1 at 0xc0c4000, 8-bit, IRQ 110/112.
+        sdhc: sdhci@c0c4000 {
+            compatible = "qcom,sdhci-msm-v5";
+            reg = <0x0 0xc0c4000 0x0 0x1000>,
+                  <0x0 0xc0c5000 0x0 0x1000>;
+            reg-names = "hc_mem", "cmdq_mem";
+            interrupts = <0 110 0>, <0 112 0>;
+            interrupt-names = "hc_irq", "pwr_irq";
+            unixnu,adt-name = "sdhc";
+            status = "okay";
+        };
+
+        // BLSP1 UART2 (debug serial), IRQ 108.
+        uart: serial@c170000 {
+            compatible = "qcom,msm-uartdm-v1.4", "qcom,msm-uartdm";
+            reg = <0x0 0x0c170000 0x0 0x1000>;
+            interrupts = <0 108 0>;
+            unixnu,adt-name = "uart";
+            status = "okay";
+        };
+    };
+};
