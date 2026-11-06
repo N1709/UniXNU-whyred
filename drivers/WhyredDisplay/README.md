@@ -1,0 +1,27 @@
+# WhyredDisplay
+
+State: **planned**. No driver code yet.
+
+## Two stages
+
+1. **Firmware framebuffer.** The vendor bootloader leaves a contiguous buffer at
+   `0x9d400000` (`cont_splash_region`, 36 MiB). The first UniXNU milestone
+   presents through the firmware GOP and does not touch MDP or DSI.
+2. **Native panel.** 1080x2160 panel behind the Qualcomm MDP/DSI block
+   (MDP `0xc900000`, DSI controller `0xc994000`). Vendor panel candidates:
+   `td4310_tianma`, `nt36672_tianma`, `nt36672_huaxing`, `td4310_shenchao`.
+
+The panel model is not confirmed from a live device yet. Confirm it before
+writing panel init data.
+
+## Why the framebuffer first
+
+Adreno 509 has no native XNU driver, and the vendor MDP5/DSI stack is not the
+SM8550 SDE/DSI path used by the newer components. A working GOP handoff keeps
+display out of the first boot's critical path.
+
+## Contract
+
+- Framebuffer: `0x9d400000` + 36 MiB, already reserved in `dts/whyred.dts`.
+- Mode: 1080x2160, 32-bit.
+- Keep the splash reservation out of XNU allocations.
