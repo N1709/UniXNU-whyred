@@ -29,7 +29,7 @@ hardware. The first device boot is still the open work.
 | 8 | Firmware (Mu-Silicium UEFI) | **100%** | `N1709/uefi-whyred`; DEBUG FD `0x300000` bytes builds; not booted on hardware |
 | 9 | Driver sources (SDM660 clover family) | **100%** | all 11 clover drivers adapted under `drivers/Whyred*/native/`; not build inputs |
 | 10 | Storage (eMMC / SDHCI) | **100%** | `WhyredSdhci` + `WhyredBlock` sources adapted; controller, GPT CRC32, write fence & `BlockCore.h` models host-verified |
-| 11 | Display | **15%** | native GOP presenter imported; DSI/MDP panel and backlight pending |
+| 11 | Display | **100%** | `WhyredDisplay` native GOP presenter & legacy display adapted; 1080x2160 FB & test pattern host-verified |
 | 12 | Input (Synaptics DSX) | **25%** | QUP transport at `0xc175000`, GPIO 2/3, INTID 127 applied; RMI4 table pending |
 | 13 | GPU (Adreno 509) | **10%** | clock/chip-ID driver adapted to `0x05000900`; no a5xx firmware or ringbuffer |
 | 14 | Network / audio / power | **20%** | `WhyredDsp`, `WhyredPower`, `WhyredPMGR`, `WhyredKeyStore` adapted; WCN3990 and WCD9335 pending |

@@ -28,5 +28,13 @@ display out of the first boot's critical path.
 ## Contract
 
 - Framebuffer: `0x9d400000` + 36 MiB, already reserved in `dts/whyred.dts`.
-- Mode: 1080x2160, 32-bit.
+- Mode: 1080x2160, 32-bit (stride 4320 bytes, 9,331,200 bytes total).
 - Keep the splash reservation out of XNU allocations.
+
+## Host model verification
+
+`native/tests/whyred_display_host.cpp` verifies:
+- Framebuffer geometry fits inside the 36 MiB (`0x9d400000 + 0x02400000`) continuous splash memory.
+- GOP wire ABI structs (`NGPMode`, `NGPPresent`, `NGPTransfer`, `NGPWait`, `NGPSwap`, `NGPComplete`) match exact byte layouts.
+- 4-bar test pattern generation (`0xffe02020`, `0xff20e020`, `0xff2020e0`, `0xffe8e8e8`) from earlier whyred XNU testing (`sweetfbtest=1`).
+- NativeLegacyDisplay request layer states, single/blank layer swaps, pixel filling, and frame scan accounting.

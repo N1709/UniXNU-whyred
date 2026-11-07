@@ -118,7 +118,14 @@ clang++ -Wall -Wextra -Werror -std=c++17 -I"$DEVICE/drivers/WhyredSdhci/native" 
 "$OUT/whyred_sdhci_test" >/dev/null || fail "run whyred_sdhci_test"
 pass "storage host model (WhyredBlock + WhyredSdhci)"
 
-# 8. Record checker.
+# 8. Host display logic check (WhyredDisplay).
+clang++ -Wall -Wextra -Werror -std=c++17 -I"$DEVICE/drivers/WhyredDisplay/native" \
+    -o "$OUT/whyred_display_test" "$DEVICE/drivers/WhyredDisplay/native/tests/whyred_display_host.cpp" \
+    || fail "compile whyred_display_test"
+"$OUT/whyred_display_test" >/dev/null || fail "run whyred_display_test"
+pass "display host model (WhyredDisplay)"
+
+# 9. Record checker.
 python3 "$UNIXNU/scripts/porting-record.py" check --device "$DEVICE" \
     || fail "porting-record.py check"
 

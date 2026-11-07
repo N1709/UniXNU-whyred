@@ -227,7 +227,7 @@ evidence = [
 
 [[area]]
 id = "display"
-status = "planned"
+status = "implemented"
 components = []
 paths = ["drivers/WhyredDisplay/**", "dts/**", "package/**"]
 inputs = [
@@ -246,6 +246,8 @@ findings = [
   "The vendor stack is downstream MDP5/DSI, not the SM8550 SDE/DSI path used by ShengUfs-era components.",
   "Adreno 509 has no native driver, so the first display output must not depend on the GPU.",
   "drivers/WhyredDisplay/native carries the native UniXNU GOP presenter and IOMobileFramebuffer ABI, adapted from clover; it takes the mode from the firmware GOP, so 1080x2160 needs no constant.",
+  "In the earlier whyred XNU port (ios-whyred2 patches 0176 and 0177), sweetfbtest=1 validated continuous splash scanout at 0x9d400000 + 36 MiB with a 4-bar test pattern (1080x2160, 4320 stride, 9331200 bytes) mapped via kernel_map uncached memory.",
+  "drivers/WhyredDisplay/native/tests/whyred_display_host.cpp models the 1080x2160 geometry within cont_splash_mem, GOP wire ABI structs, test pattern rendering, and NativeLegacyDisplay layer and scan state machines on the host.",
 ]
 completion = [
   "A known frame appears at 1080x2160 with correct colors.",
@@ -259,6 +261,8 @@ next_action = [
 ]
 evidence = [
   { kind = "source", reference = "drivers/WhyredDisplay/native/NativeGOPPresenter.cpp", result = "Native UniXNU display source adapted from clover; not a build input yet." },
+  { kind = "source", reference = "drivers/WhyredDisplay/native/NativeLegacyDisplay.cpp", result = "IOMobileFramebuffer ABI and single/blank layer swap emulation." },
+  { kind = "source", reference = "drivers/WhyredDisplay/native/tests/whyred_display_host.cpp", result = "Host unit model for GOP wire ABI, 1080x2160 framebuffer bounds and test pattern rendering." },
 ]
 
 [[area]]
