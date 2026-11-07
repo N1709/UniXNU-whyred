@@ -87,7 +87,9 @@ pass "unixnu tree"
 for source in drivers/WhyredSdhci/WhyredSdhci.c drivers/WhyredTouch/WhyredTouch.c; do
     [ -s "$DEVICE/$source" ] || fail "staged source missing: $source"
 done
-if grep -rqi "hak""ios" "$DEVICE" --exclude-dir=.git --exclude-dir=.cache; then
+# Reject the retired project name and its spacing/punctuation variants. The
+# bracket keeps this pattern from matching its own text.
+if grep -rqiE "h[a]k[ _.-]?ios|h[a]ck[ _.-]?ios|h[a]ki[ _.-]?os" "$DEVICE" --exclude-dir=.git --exclude-dir=.cache; then
     fail "retired project name found in the repository"
 fi
 pass "staged drivers"
