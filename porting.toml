@@ -86,7 +86,7 @@ findings = [
   "The closest platform is lavenderPkg (SDM660): its memory map already matches whyred, including the 0x9D400000 + 36 MiB display window.",
   "Lavender's USE_CUSTOM_DISPLAY_DRIVER points at a closed vendor DisplayDxe for its panel; whyred needs its own vendor DXE or a generic GOP over the ABL framebuffer.",
   "Booting with fastboot boot keeps the vendor boot and modem partitions untouched, which is the required safety boundary for this device.",
-  "check-whyred.sh verifies the firmware bootimg dtb compilation against the iOS 16 profile.",
+  "check-whyred.sh verifies the firmware bootimg dtb compilation and storage host model against the iOS 16 profile.",
 ]
 completion = [
   "A fastboot-booted firmware image reaches the UniXNU menu and publishes a framebuffer.",
@@ -182,7 +182,7 @@ evidence = [
 
 [[area]]
 id = "storage"
-status = "planned"
+status = "implemented"
 components = []
 paths = ["drivers/WhyredSdhci/**", "drivers/WhyredBlock/**", "package/**", "dts/**"]
 inputs = [
@@ -204,18 +204,23 @@ findings = [
   "The previous XNU storage driver read first block 0x2b8c00 and 109643 MiB from this GPT entry, which fixes the board geometry.",
   "drivers/WhyredSdhci/WhyredSdhci.c is the earlier whyred polled SDHCI driver, staged with the WHYRED guard; it verified PIO/SDMA reads, GPT parse and an HFSX mount on the phone.",
   "drivers/WhyredSdhci/native/WhyredSdhci.cpp is the native UniXNU driver adapted from clover for the same SDCC1 block; its userdata window is already set to whyred 0x2b8c00..0x1d7d6ff.",
+  "drivers/WhyredBlock/native/tests/whyred_block_host.cpp proves BlockCore.h request clamping, 9 refusal branches, and card-absolute LBA translations on the host.",
 ]
 completion = [
   "GPT parse and capacity read match the device; OS and SystemOS windows stay inside userdata.",
   "A persistent Data volume survives reboot without touching the backup GPT.",
 ]
 limits = [
-  "No storage driver yet; the current milestone stops before any block device is published.",
+  "No sustained hardware I/O verification yet; first milestone is read-only enumeration on the phone.",
 ]
 next_action = [
   "Bring up the SDHCI host in read-only mode, then publish the block device and mount the GPT windows.",
 ]
-evidence = []
+evidence = [
+  { kind = "source", reference = "drivers/WhyredBlock/native/BlockCore.h", result = "Bounds arithmetic, partition-to-LBA mapping and request clamping." },
+  { kind = "source", reference = "drivers/WhyredBlock/native/WhyredBlock.cpp", result = "IOBlockStorageDevice wrapper with 0x2b8c00..0x1d7d6ff userdata window." },
+  { kind = "source", reference = "drivers/WhyredSdhci/native/WhyredSdhci.cpp", result = "SDHCI eMMC host controller driver for 0xc0c4000." },
+]
 
 [[area]]
 id = "display"
@@ -428,7 +433,7 @@ procedure = [
 findings = [
   "The template packaging action is retained but its firmware checkout is replaced by REPLACE/uefi-whyred because no whyred firmware repository exists.",
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
-  "package workflow and packaging options updated for the iOS 16 profile.",
+  "package workflow and packaging options updated for the iOS 16 profile; storage host model verified.",
 ]
 completion = [
   "Kernel, payload and boot image build reproducibly and contain every declared input.",
@@ -462,7 +467,7 @@ procedure = [
 ]
 findings = [
   "The previous port proved the userdata GPT values and recovery touch but never reached a stable UniXNU boot.",
-  "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution and ADT generation.",
+  "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution, ADT generation and storage host model.",
 ]
 completion = [
   "Every claimed milestone has a reproducible command, a matching revision and an accessible log.",

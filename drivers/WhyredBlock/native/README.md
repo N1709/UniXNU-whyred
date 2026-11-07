@@ -87,7 +87,7 @@ the reason the window is checked against the card's own report before anything i
 
 `BlockCore.h` is this driver's arithmetic with the bus removed: the manifest walk, the request bound,
 the 128-block batching, the delivery accounting, the logfs overlap test and `reportMaxValidBlock()`'s
-answer. It includes `<stdint.h>` and nothing else, so `drivers/CloverBlock/tests/clover_block_host.cpp`
+answer. It includes `<stdint.h>` and nothing else, so `drivers/WhyredBlock/tests/whyred_block_host.cpp`
 compiles the same functions the kernel does and `scripts/test-clover-block.py` runs it on the host. Fifteen
 groups cover the walk in any row order, every refusal with the number it prints, the digest copy, the
 half-open overlap, and that `blk_last_block()` and `blk_admit_request()` cannot disagree about the last
@@ -147,7 +147,7 @@ prerequisites for replacing it are `notes/unixnu-doc-conformance.md` §5.
 
 Against `docs/drivers/xnu-drivers.md:230-239`: compile and object ABI are gated, hardware is the on-board
 loop, kernel boot is covered by the same loop, and host logic has a model — `BlockCore.h` plus
-`drivers/CloverBlock/tests/clover_block_host.cpp`, run by `scripts/test-clover-block.py` in the same shape
+`drivers/WhyredBlock/tests/whyred_block_host.cpp`, run by `scripts/check-whyred.sh` in the same shape
 as `drivers/CloverDsp/tests`. That closes the open item round314 recorded here for this driver
 (`notes/unixnu-doc-conformance.md` §7). What still diverges is the class shape above, and it is a
 link-time constraint, not a preference.
