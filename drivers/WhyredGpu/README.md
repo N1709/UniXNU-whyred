@@ -26,7 +26,17 @@ Read the GPUCC state firmware left, poll CX/GX until they settle, then read the
 chip ID once and match `0x05000900`. Do not write a power state the driver
 cannot undo.
 
+## Host model verification
+
+`native/tests/whyred_gpu_host.cpp` verifies:
+- Adreno 509 hardware identity (`0x05000900`), core base `0x05000000` (256 KiB) and chip ID offset `+0x10200`.
+- GPUCC base `0x05065000` and GCC base `0x00100000`.
+- GDSCR GX (`0x1094`) and CX (`0x1004` / `0x1008`) power state machines.
+- `gfx3d` branch clock enable and halt bit polarities.
+- GFX LDO census and MEM_ACC (`0x01fcf004`) corner selection logic.
+
 ## Still open
 
 Adreno 509 firmware (`a5xx`) and the ringbuffer/`IOAccelerator` path are not
-started. This file only identifies the core.
+started. This file only identifies the core. Software rendering and firmware
+framebuffer are used for UI presentation.

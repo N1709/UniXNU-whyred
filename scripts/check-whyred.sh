@@ -132,7 +132,14 @@ clang++ -Wall -Wextra -Werror -std=c++17 -I"$DEVICE/drivers/WhyredInput/native" 
 "$OUT/whyred_input_test" >/dev/null || fail "run whyred_input_test"
 pass "input host model (WhyredInput)"
 
-# 10. Record checker.
+# 10. Host GPU logic check (WhyredGpu: Adreno 509 clock / chip ID model).
+clang++ -Wall -Wextra -Werror -std=c++17 -I"$DEVICE/drivers/WhyredGpu/native" \
+    -o "$OUT/whyred_gpu_test" "$DEVICE/drivers/WhyredGpu/native/tests/whyred_gpu_host.cpp" \
+    || fail "compile whyred_gpu_test"
+"$OUT/whyred_gpu_test" >/dev/null || fail "run whyred_gpu_test"
+pass "gpu host model (WhyredGpu)"
+
+# 11. Record checker.
 python3 "$UNIXNU/scripts/porting-record.py" check --device "$DEVICE" \
     || fail "porting-record.py check"
 

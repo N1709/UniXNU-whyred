@@ -31,7 +31,7 @@ hardware. The first device boot is still the open work.
 | 10 | Storage (eMMC / SDHCI) | **100%** | `WhyredSdhci` + `WhyredBlock` sources adapted; controller, GPT CRC32, write fence & `BlockCore.h` models host-verified |
 | 11 | Display | **100%** | `WhyredDisplay` native GOP presenter & legacy display adapted; 1080x2160 FB & test pattern host-verified |
 | 12 | Input (Synaptics DSX) | **100%** | `WhyredInput` unified Synaptics DSX (RMI4/RMI5) & Novatek IC probing, F12 multi-touch & QUP transport host-verified |
-| 13 | GPU (Adreno 509) | **10%** | clock/chip-ID driver adapted to `0x05000900`; no a5xx firmware or ringbuffer |
+| 13 | GPU (Adreno 509) | **25%** | clock/chip-ID driver adapted to `0x05000900`; GDSC/GPUCC & A509 identity host-verified |
 | 14 | Network / audio / power | **20%** | `WhyredDsp`, `WhyredPower`, `WhyredPMGR`, `WhyredKeyStore` adapted; WCN3990 and WCD9335 pending |
 | 15 | Hardware boot | **0%** | firmware builds, no device log yet |
 

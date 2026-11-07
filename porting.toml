@@ -38,7 +38,7 @@ findings = [
   "The manual package workflow now points at N1709/uefi-whyred instead of the REPLACE/uefi-whyred placeholder.",
   "board.toml [firmware] now resolves the published N1709/uefi-whyred tree: dsc whyredPkg/whyred.dsc, fd Build/whyredPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd and the EDK II submodule/package list used by unixnu build firmware.",
   "Target OS profile is switched to iPhone X (iPhone10,3) iOS 16.7.16 (20H392); os_profile, defconfig and ADT properties reflect the gesture-based phone target.",
-  "Storage, display, and input drivers host models (WhyredBlock, WhyredSdhci, WhyredDisplay, WhyredInput) verified and integrated into check-whyred.sh.",
+  "Storage, display, input, and GPU drivers host models (WhyredBlock, WhyredSdhci, WhyredDisplay, WhyredInput, WhyredGpu) verified and integrated into check-whyred.sh.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
@@ -326,6 +326,7 @@ procedure = [
 findings = [
   "Adreno740 and AdrenoMetal target SM8550 (A740) and are not compatible with the whyred GPU.",
   "drivers/WhyredGpu/native is the clover Adreno driver adapted to whyred: the chip ID gate now expects 0x05000900 instead of a512's 0x05010200.",
+  "drivers/WhyredGpu/native/tests/whyred_gpu_host.cpp models the Adreno 509 hardware identity (0x05000900), GPUCC (0x05065000), GDSCR GX/CX power state decoders, and LDO/MEM_ACC corner selection on host.",
 ]
 completion = [
   "A known image renders through a GPU submission and is presented by the selected Metal client.",
@@ -338,6 +339,8 @@ next_action = [
 ]
 evidence = [
   { kind = "source", reference = "drivers/WhyredGpu/native/GpuRegs.h", result = "kGpuChipidValue = 0x05000900 (Adreno 509); GPUCC base unchanged." },
+  { kind = "source", reference = "drivers/WhyredGpu/native/WhyredGpu.cpp", result = "Native UniXNU Adreno 509 clock and chip ID probe driver adapted to whyred." },
+  { kind = "source", reference = "drivers/WhyredGpu/native/tests/whyred_gpu_host.cpp", result = "Host unit model verifying Adreno 509 chip ID (0x05000900), GPUCC clock/branch gates, and GDSC power domains." },
 ]
 
 [[area]]
