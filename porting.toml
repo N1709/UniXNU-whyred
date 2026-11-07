@@ -34,6 +34,8 @@ findings = [
   "The vendor DT puts qcom,msm-id = <345 0x0> in sdm636.dtsi, which separates whyred from the SDM660 clover port (msm-id 317).",
   "The previous whyred XNU work used a contiguous splash buffer at 0x9d400000 + 36 MiB; the board DTS keeps the same reservation.",
   "The shared directory is a local SoC feed, not a copied core checkout: moving it later changes only feeds.toml and the pin.",
+  "Every change under .github/** belongs to this area, so a workflow edit must add a finding or evidence entry here; the porting-record check rejects a workflow-only commit.",
+  "The manual package workflow now points at N1709/uefi-whyred instead of the REPLACE/uefi-whyred placeholder.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ipados-17.7.11-21H461 and device whyred with no missing source.",
@@ -53,6 +55,8 @@ evidence = [
   { kind = "source", reference = "unixnu.lock", result = "Resolved pins for xnu, edk2, corecrypto-2023, libdispatch, libplatform, libpthread, IOStorageFamily, AvailabilityVersions and whyred-android-dt." },
   { kind = "source", reference = "soc/sdm660/soc.toml", result = "SDM660/SDM636 SoC profile with the vendor revision and shared component set." },
   { kind = "source", reference = "configs/whyred_defconfig", result = "Board defconfig with CONFIG_XNU_NATIVE_PAN=n and the eMMC/no-GPU switch set." },
+  { kind = "source", reference = ".github/workflows/porting-record.yml", result = "Reusable UniXNU porting-record check on every push and pull request." },
+  { kind = "source", reference = ".github/workflows/package.yml", result = "Manual macOS packaging workflow using N1709/uefi-whyred and the UNIXNU_UNIQUE_CHIP_ID seed." },
 ]
 
 [[area]]

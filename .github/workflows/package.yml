@@ -2,10 +2,9 @@ name: package
 
 # Packaging action for whyred (docs/porting/packaging.md).
 #
-# The firmware repository is still a placeholder: no whyred Mu-Silicium/UEFI port
-# exists, so this workflow stays manual and will fail at the firmware checkout
-# until REPLACE/uefi-whyred is published. The porting-record workflow is the check
-# that runs on every push.
+# The firmware checkout is N1709/uefi-whyred. It stays a manual workflow because
+# it needs the device platform seed and produces images tied to one device. The
+# porting-record workflow is the check that runs on every push.
 #
 # The platform seed comes from the repository secret UNIXNU_UNIQUE_CHIP_ID and is
 # baked into the images, so the run's artifacts belong to one device alone:
@@ -43,7 +42,7 @@ jobs:
           submodules: recursive
       - uses: actions/checkout@v4
         with:
-          repository: REPLACE/uefi-whyred   # this board's firmware checkout
+          repository: N1709/uefi-whyred   # this board's firmware checkout
           path: uefi-whyred
           submodules: recursive
       - name: tools
