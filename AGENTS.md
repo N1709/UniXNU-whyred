@@ -46,7 +46,10 @@ device repository: change `board.toml`, never that script.
 
 ## Current boundary
 
-No whyred UEFI firmware exists, so `[firmware]` is intentionally incomplete and
-`scripts/package.sh` cannot finish. `HANDOFF.md` fixes the base tree, DSC
-values, UniXNU module list, vendor display blocker and verification order. The
-next milestone is the firmware port, followed by read-only eMMC enumeration.
+`[firmware]` points at the published `N1709/uefi-whyred` tree, which builds a
+`0x300000`-byte FD; `scripts/package.sh` can finish and leaves one `boot.img`.
+The firmware has not run on the phone yet. `drivers/` holds the earlier whyred
+XNU sources (`WhyredSdhci.c`, `WhyredTouch.c`) and `drivers/reference/clover/`
+holds native UniXNU drivers from the SDM660 clover repository; neither is a
+build input. The next milestone is the first `fastboot boot` log, followed by
+read-only eMMC enumeration.

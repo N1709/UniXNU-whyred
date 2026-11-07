@@ -66,19 +66,38 @@ results.
 - Source pins in `unixnu.lock`: **100%**.
 - Porting record with 13 areas: **100%**.
 - Offline host check, `scripts/check-whyred.sh`: **100%**.
-- Firmware port handoff, `HANDOFF.md`: **100%** as a plan; the port is **0%**.
+- Firmware port, `N1709/uefi-whyred`: **100%** as a build. The DEBUG FD is
+  `0x300000` bytes and the workflow produces one `Mu-whyred.img`. Hardware
+  boot is **0%**.
 - Driver tree scaffold, `drivers/` with five hardware contracts: **100%** as
-  documentation; driver code is **0%**.
-- Hardware boot, firmware, storage, display, input, GPU, network, audio and
-  power: **0%**.
+  documentation.
+- Staged driver sources, `WhyredSdhci.c` and `WhyredTouch.c`: **100%** as
+  sources from the earlier whyred XNU port; not build inputs.
+- Native references, `drivers/reference/clover/` (six SDM660 UniXNU drivers,
+  BSD-2-Clause-Patent, commit `4c5652e`): **100%** as references.
+- Hardware boot, storage, display, input, GPU, network, audio and power: **0%**.
+
+## Packaging
+
+`./unixnu build` (or `unixnu release`) produces one image,
+`out/whyred/ipados-17.7.11-21H461/whyred/boot/boot.img`:
+
+- kernel field: `BootShim` + `SILICIUM_UEFI.fd` + `dts/whyred.dtb`;
+- ramdisk field: `payload/payload.img` (XNU kernel, ADT, config).
+
+`[firmware] preflight` compiles the board DTB into the tree, so the firmware and
+the boot image see the same tree. The GitHub workflow copies that one file to
+`Mu-whyred.img` and uploads it; it does not split the outputs.
+
+Boot it with `fastboot boot Mu-whyred.img`. Nothing is flashed.
 
 ## Next
 
-1. Port Mu-Silicium UEFI to whyred using `HANDOFF.md` and fill `[firmware]`.
-2. Boot with one CPU and capture the serial console.
-3. Add read-only eMMC enumeration.
-4. Publish the firmware framebuffer.
-5. Only then port the DSX touch driver.
+1. Run the `package` workflow and download `Mu-whyred.img`.
+2. Boot it with `fastboot boot` and capture UART2 at `0x0C170000`, 115200 8n1.
+3. Add read-only eMMC enumeration from `drivers/WhyredSdhci`.
+4. Publish the firmware framebuffer, then port the DSX touch driver.
+5. Promote the clover native drivers one at a time into `drivers/Whyred*`.
 
 ## Publication
 

@@ -83,7 +83,16 @@ PY
 [ -s "$DEVICE/unixnu.lock" ] || fail "unixnu.lock missing"
 pass "unixnu tree"
 
-# 6. Record checker.
+# 6. Staged driver sources: present, and free of the old project's naming.
+for source in drivers/WhyredSdhci/WhyredSdhci.c drivers/WhyredTouch/WhyredTouch.c; do
+    [ -s "$DEVICE/$source" ] || fail "staged source missing: $source"
+done
+if grep -rqi "hak""ios" "$DEVICE" --exclude-dir=.git --exclude-dir=.cache; then
+    fail "retired project name found in the repository"
+fi
+pass "staged drivers"
+
+# 7. Record checker.
 python3 "$UNIXNU/scripts/porting-record.py" check --device "$DEVICE" \
     || fail "porting-record.py check"
 

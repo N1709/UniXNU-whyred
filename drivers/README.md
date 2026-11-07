@@ -13,11 +13,20 @@ assembled tree. Keep both in sync when a driver is promoted.
 
 | Driver | Role | State |
 | --- | --- | --- |
-| `WhyredSdhci` | eMMC host at `0xc0c4000` | planned |
+| `WhyredSdhci` | eMMC host at `0xc0c4000` | staged source (`WhyredSdhci.c`) |
 | `WhyredBlock` | `IOBlockStorageDevice` and the `userdata` GPT windows | planned |
 | `WhyredDisplay` | GOP handoff, then MDP/DSI panel | planned |
-| `WhyredTouch` | Synaptics DSX on BLSP1 QUP1 | planned |
+| `WhyredTouch` | Synaptics DSX on BLSP1 QUP1 | staged source (`WhyredTouch.c`) |
 | `WhyredPower` | PM660/PM660L rails needed by storage, display and touch | planned |
+
+Staged sources come from the earlier whyred XNU port and are cleaned of that
+project's naming before they land here. They document what already ran on the
+phone; they do not enter the build until the promotion checklist is done.
+
+`reference/clover/` holds six native UniXNU drivers from the SDM660 clover
+repository (BSD-2-Clause-Patent, pinned commit). They are the model for the
+same hardware blocks and are never built in place; see its README for the
+constant-by-constant whyred delta.
 
 Reusable drivers belong in their own component repository. A directory here is
 whyred-specific wiring: addresses, panel, touch controller, rail names and the

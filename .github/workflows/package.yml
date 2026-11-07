@@ -44,7 +44,9 @@ jobs:
         with:
           repository: N1709/uefi-whyred   # this board's firmware checkout
           path: uefi-whyred
-          submodules: recursive
+          # Only [firmware] submodules are needed; the driver initializes them
+          # one by one. A recursive checkout also pulls Mu_Basecore's optional
+          # SPDM/unit-test trees, which are slow and not part of the build.
       - name: tools
         run: |
           brew install dtc llvm lld cmake mtools blacktop/tap/ipsw
@@ -71,14 +73,22 @@ jobs:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
           GITHUB_TOKEN: ${{ github.token }}
         run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-whyred
+      - name: single image
+        # unixnu release leaves boot/boot.img with everything in one file:
+        # BootShim + SILICIUM_UEFI.fd + whyred.dtb in the kernel field and
+        # payload.img (XNU kernel, ADT, config) in the ramdisk field. This step
+        # gives that one file the release name; nothing is split afterwards.
+        run: |
+          src=$(find UniXNU/out/whyred -name boot.img -print -quit)
+          test -n "$src"
+          cp "$src" Mu-whyred.img
+          ls -l Mu-whyred.img
       - name: images
         uses: actions/upload-artifact@v4
         with:
-          name: images-${{ inputs.os }}
+          name: Mu-whyred-${{ inputs.os }}
           retention-days: 1
           if-no-files-found: error
           path: |
-            UniXNU/out/whyred/*/*/boot/boot.img
-            UniXNU/out/whyred/*/*/payload/payload.img
-            UniXNU/out/whyred/*/*/kernel/kernel.macho
+            Mu-whyred.img
             UniXNU/out/whyred/*/*/package.manifest.json

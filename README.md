@@ -15,7 +15,7 @@ not carry the UniXNU core checkout.
 ## Status
 
 `100%` means the item is complete in this repository, not that it boots on
-hardware. Firmware and drivers are the open work.
+hardware. Drivers and the first device boot are the open work.
 
 | # | Step | State | Evidence |
 | --- | --- | --- | --- |
@@ -26,13 +26,13 @@ hardware. Firmware and drivers are the open work.
 | 5 | userdata geometry | **100%** | GPT first LBA `0x2b8c00`, last `0x1d7d6ff`, 4 KiB LBAs |
 | 6 | Packaging inputs and defconfig | **100%** | `configs/whyred_defconfig`, `[package]`, `[payload]`, `[payload.adt]` |
 | 7 | Porting record | **100%** | `porting.toml`, 13 areas, `porting-record.py check`, `scripts/check-whyred.sh` |
-| 8 | Firmware (Mu-Silicium UEFI) | **0%** | no whyred port yet; base, values and blockers fixed in `HANDOFF.md` |
-| 9 | Storage (eMMC / SDHCI) | **0%** | controller documented, no driver |
-| 10 | Display | **0%** | splash reserved, no GOP or panel driver |
-| 11 | Input (Synaptics DSX) | **0%** | I2C/IRQ documented, old PDT work recorded |
+| 8 | Firmware (Mu-Silicium UEFI) | **100%** | `N1709/uefi-whyred`; DEBUG FD `0x300000` bytes builds; not booted on hardware |
+| 9 | Storage (eMMC / SDHCI) | **0%** | controller documented; staged XNU source and native clover reference |
+| 10 | Display | **0%** | splash reserved; native clover GOP reference imported |
+| 11 | Input (Synaptics DSX) | **0%** | I2C/IRQ documented; staged XNU probe and native clover reference |
 | 12 | GPU (Adreno 509) | **0%** | no Adreno 5xx driver |
-| 13 | Network / audio / power | **0%** | hardware documented, no components |
-| 14 | Hardware boot | **0%** | blocked on firmware |
+| 13 | Network / audio / power | **0%** | hardware documented; native clover power reference imported |
+| 14 | Hardware boot | **0%** | firmware builds, no device log yet |
 
 ## Hardware
 

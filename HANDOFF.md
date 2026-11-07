@@ -1,7 +1,21 @@
 # Firmware handoff: whyred UEFI port
 
-Status: **not started**; no `uefi-whyred` repository exists. This file fixes the
-base, the values and the open questions so the port does not start from a guess.
+Status: **shipped as a build**. The firmware lives at
+[N1709/uefi-whyred](https://github.com/N1709/uefi-whyred); the DEBUG FD is
+`0x300000` bytes and `unixnu build` packs it into one `boot.img`. Hardware boot
+is still unverified. The rest of this file keeps the values and the reasoning,
+so later changes can be checked against the original plan.
+
+## Current result
+
+- `Platforms/Xiaomi/whyredPkg` builds vendor-free: `SimpleFbDxe` over the ABL
+  framebuffer, `WhyredBootMemoryDxe`, UniXNU RamDisk and DarwinBoot.
+- `[firmware.defines] ENABLE_SECUREBOOT = "0"` is required: SiliciumPkg tests
+  the value in C preprocessor expressions.
+- `SmbiosDxe` and `SmBiosTableDxe` are listed in `Whyred.fdf` only. Listing
+  them in `DXE.inc` as well makes GenFv fail with a duplicate `FILE_GUID`.
+- The device repository builds one image: `BootShim` + FD + DTB in the kernel
+  field, `payload.img` in the ramdisk field.
 
 ## Base
 
@@ -132,26 +146,29 @@ panel and PMIC wiring.
 
 ## Build and publish
 
-After the new repository exists (`gh repo create N1709/uefi-whyred --public` or
-the web UI), then from the firmware checkout:
+The repository is published and `[firmware]` already names its real `dsc`, `fd`,
+`packages`, submodules and preflight. From the UniXNU checkout:
 
 ```sh
-./setup_env.sh
-./build_uefi.py -d whyred -r RELEASE
+./unixnu build firmware --uefi ../uefi-whyred -D ../UniXNU-whyred \
+  --edk2 out/feeds/mu_basecore-8f10084c --target DEBUG -j 8
 ```
 
-The output is `Build/whyredPkg/RELEASE_CLANGPDB/FV/SILICIUM_UEFI.fd`. Then set
-`[firmware]` in `board.toml` to the real `dsc`, `fd`, `packages` and preflight
-paths, and run from UniXNU:
+The output is `Build/whyredPkg/DEBUG_CLANGPDB/FV/SILICIUM_UEFI.fd`. The full
+one-image build (kernel, package, firmware, payload, boot image) is:
 
 ```sh
-./unixnu defconfig whyred_defconfig -D ../UniXNU-whyred
-./unixnu build package firmware --uefi ../uefi-whyred
-scripts/package.sh --os 17 --uefi ../uefi-whyred
+./unixnu build -D ../UniXNU-whyred --uefi ../uefi-whyred \
+  --edk2 out/feeds/mu_basecore-8f10084c -j 8
 ```
 
-`[firmware.defines]` should mirror lavender with
-`UNIXNU_BUILD = "1"` once the DSC supports the conditional block.
+or `scripts/package.sh --os 17 --uefi ../uefi-whyred`. Both leave the single
+`out/whyred/ipados-17.7.11-21H461/whyred/boot/boot.img`. The GitHub workflow
+copies it to `Mu-whyred.img`.
+
+The standalone `build_uefi.py` cannot build the UniXNU modules: it does not add
+`{tree}/package` and `{tree}/drivers/DarwinBoot` to `PACKAGES_PATH`. Use
+`unixnu build firmware`.
 
 ## Verification checklist
 
