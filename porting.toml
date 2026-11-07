@@ -205,6 +205,7 @@ findings = [
   "drivers/WhyredSdhci/WhyredSdhci.c is the earlier whyred polled SDHCI driver, staged with the WHYRED guard; it verified PIO/SDMA reads, GPT parse and an HFSX mount on the phone.",
   "drivers/WhyredSdhci/native/WhyredSdhci.cpp is the native UniXNU driver adapted from clover for the same SDCC1 block; its userdata window is already set to whyred 0x2b8c00..0x1d7d6ff.",
   "drivers/WhyredBlock/native/tests/whyred_block_host.cpp proves BlockCore.h request clamping, 9 refusal branches, and card-absolute LBA translations on the host.",
+  "drivers/WhyredSdhci/native/tests/whyred_sdhci_host.cpp models the Qualcomm SDCC1 controller, inhibit/timeout handshakes, zero-dependency UEFI 2.8 GPT CRC32 verification, userdata write boundary clamping (0x2b8c00..0x1d7d6ff) and persistent log fencing.",
 ]
 completion = [
   "GPT parse and capacity read match the device; OS and SystemOS windows stay inside userdata.",
@@ -219,7 +220,9 @@ next_action = [
 evidence = [
   { kind = "source", reference = "drivers/WhyredBlock/native/BlockCore.h", result = "Bounds arithmetic, partition-to-LBA mapping and request clamping." },
   { kind = "source", reference = "drivers/WhyredBlock/native/WhyredBlock.cpp", result = "IOBlockStorageDevice wrapper with 0x2b8c00..0x1d7d6ff userdata window." },
+  { kind = "source", reference = "drivers/WhyredBlock/native/tests/whyred_block_host.cpp", result = "Host model for BlockCore manifest parsing, bounds arithmetic and request clamping." },
   { kind = "source", reference = "drivers/WhyredSdhci/native/WhyredSdhci.cpp", result = "SDHCI eMMC host controller driver for 0xc0c4000." },
+  { kind = "source", reference = "drivers/WhyredSdhci/native/tests/whyred_sdhci_host.cpp", result = "Host unit model for SDCC1 controller handshake, UEFI 2.8 GPT CRC32 and userdata write fence." },
 ]
 
 [[area]]

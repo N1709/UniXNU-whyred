@@ -106,12 +106,17 @@ if grep -rqiE "h[a]k[ _.-]?ios|h[a]ck[ _.-]?ios|h[a]ki[ _.-]?os" "$DEVICE" --exc
 fi
 pass "staged drivers"
 
-# 7. Host storage logic check.
+# 7. Host storage logic checks (WhyredBlock + WhyredSdhci).
 clang++ -Wall -Wextra -Werror -std=c++17 \
     -o "$OUT/whyred_block_test" "$DEVICE/drivers/WhyredBlock/native/tests/whyred_block_host.cpp" \
     || fail "compile whyred_block_test"
 "$OUT/whyred_block_test" >/dev/null || fail "run whyred_block_test"
-pass "storage host model"
+
+clang++ -Wall -Wextra -Werror -std=c++17 -I"$DEVICE/drivers/WhyredSdhci/native" \
+    -o "$OUT/whyred_sdhci_test" "$DEVICE/drivers/WhyredSdhci/native/tests/whyred_sdhci_host.cpp" \
+    || fail "compile whyred_sdhci_test"
+"$OUT/whyred_sdhci_test" >/dev/null || fail "run whyred_sdhci_test"
+pass "storage host model (WhyredBlock + WhyredSdhci)"
 
 # 8. Record checker.
 python3 "$UNIXNU/scripts/porting-record.py" check --device "$DEVICE" \

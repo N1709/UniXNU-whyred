@@ -40,6 +40,13 @@ Verified behaviour on the phone, from that port:
 - `CMD6`, GPT parse, `userdata` exposed as `emmcroot0`;
 - HFSX mounted read-write with journal replay.
 
+Host model verification:
+
+- `native/tests/whyred_sdhci_host.cpp` passes all host assertions: SDCC1 controller
+  handshake, inhibit/timeout states, bootloader handover invariants, UEFI 2.8 GPT
+  parsing with IEEE 802.3 CRC32, strict userdata write boundary enforcement, and
+  `kTeeProbeClasses` probe budgeting.
+
 Not verified: sustained I/O, repeated boots under load, HS200/HS400.
 
 ## Safety

@@ -162,11 +162,7 @@ prerequisites for putting this driver on the documented path, in order, are
 Against the five testing rows of `docs/drivers/xnu-drivers.md:230-239`: compile is gated
 (`-Wall -Wextra -Werror` against the recorded `IOPlatformExpert.cpo.json` flags), object ABI is gated,
 kernel boot is the on-board loop every flash of this driver is, hardware is the loop too, and host
-logic has **no model of its own**. That is this port's largest instrument with no `tests/` directory:
-the completion criteria, the ring arithmetic and the per-token tee budgets (the `TeeProbeClass` table
-`kTeeProbeClasses`) are the parts that would benefit most from the treatment
-`drivers/CloverDsp/tests/clover_dsp_host.cpp` and `drivers/CloverPower/tests/clover_power_host.cpp`
-give their drivers -- rule 3 of `docs/drivers/sheng-novatek-touch.md:141-148`. It is open item 3 of
-`notes/unixnu-doc-conformance.md` §7; what gates this file today instead is `check-clover.py`, whose
-`drivers/CloverSdhci` blocks assert the build/link/argument/schedule triangle (`check-clover.py:625-641`),
-the round198 recovery-BCB line, and one `kTeeProbeClasses` row per reporting round.
+logic is modeled and validated by `tests/whyred_sdhci_host.cpp` (run by `scripts/check-whyred.sh`).
+It models the controller handshake, inhibit waits, bootloader handover invariants, UEFI 2.8 GPT
+parsing with IEEE 802.3 CRC32, strict userdata write boundary clamping (0x2b8c00..0x1d7d6ff), and
+the `kTeeProbeClasses` probe budgeting.
