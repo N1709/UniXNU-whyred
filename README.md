@@ -4,8 +4,8 @@ Xiaomi Redmi Note 5 / Note 5 AI (whyred), Qualcomm SDM636, 4x Cortex-A73 +
 4x Cortex-A53 (Kryo 260, ARMv8.0), 3/4/6 GB RAM.
 
 This is a **format 2 UniXNU device repository**. It selects the ARM64 profile,
-the local `sdm660` SoC layer and the unmodified **iPad7,1 / iPadOS 17.7.11 /
-21H461** image. It is not a copy of the previous `ios-whyred2` shim and it does
+the local `sdm660` SoC layer and the unmodified **iPhone X (iPhone10,3) / iOS 16.7.16 /
+20H392** image. It is not a copy of the previous `ios-whyred2` shim and it does
 not carry the UniXNU core checkout.
 
 > **Safety boundary:** boot with `fastboot boot` only. Never flash boot, modem,
@@ -20,7 +20,7 @@ hardware. The first device boot is still the open work.
 | # | Step | State | Evidence |
 | --- | --- | --- | --- |
 | 1 | Official repository layout | **100%** | `board.toml`, `feeds.toml`, `unixnu.lock`, `configs/`, `dts/`, `soc/`, `porting.toml`, workflows, packaging script |
-| 2 | Board identity and profiles | **100%** | whyred / SDM636 / `ipados-17.7.11-21H461`, `[components] include`, `schema_version = 2` |
+| 2 | Board identity and profiles | **100%** | whyred / SDM636 / `ios-16.7.16-20H392`, `[components] include`, `schema_version = 2` |
 | 3 | SoC layer (CPU, PSCI, GICv3, timer) | **100%** | `soc/sdm660/dts/sdm660.dtsi`, validated with `dtc` and `make-adt.py` |
 | 4 | RAM and splash reservations | **100%** | `dts/whyred.dts`: `0x80000000` + 2 GiB, splash `0x9d400000` + 36 MiB |
 | 5 | userdata geometry | **100%** | GPT first LBA `0x2b8c00`, last `0x1d7d6ff`, 4 KiB LBAs |
@@ -82,7 +82,7 @@ Compile the hardware tree and generate an ADT without the full build:
 dtc -I dts -O dtb -i ../UniXNU-whyred/soc/sdm660/dts \
     -o /tmp/whyred.dtb ../UniXNU-whyred/dts/whyred.dts
 python3 scripts/make-adt.py --dtb /tmp/whyred.dtb \
-    --os-profile profiles/os/ipados-17.7.11-21H461/profile.toml \
+    --os-profile profiles/os/ios-16.7.16-20H392/profile.toml \
     --board ../UniXNU-whyred/board.toml \
     --unique-chip-id 0000000000000636 --data-ramdisk --trust-cache \
     --output /tmp/whyred.adt
@@ -91,8 +91,8 @@ python3 scripts/make-adt.py --dtb /tmp/whyred.dtb \
 Packaging becomes available after a whyred firmware checkout exists:
 
 ```sh
-scripts/package.sh --check --os 17
-scripts/package.sh --os 17 --uefi ../uefi-whyred
+scripts/package.sh --check --os 16
+scripts/package.sh --os 16 --uefi ../uefi-whyred
 ```
 
 ## Open work

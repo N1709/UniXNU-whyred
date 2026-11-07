@@ -37,6 +37,7 @@ findings = [
   "Every change under .github/** belongs to this area, so a workflow edit must add a finding or evidence entry here; the porting-record check rejects a workflow-only commit.",
   "The manual package workflow now points at N1709/uefi-whyred instead of the REPLACE/uefi-whyred placeholder.",
   "board.toml [firmware] now resolves the published N1709/uefi-whyred tree: dsc whyredPkg/whyred.dsc, fd Build/whyredPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd and the EDK II submodule/package list used by unixnu build firmware.",
+  "Target OS profile is switched to iPhone X (iPhone10,3) iOS 16.7.16 (20H392); os_profile, defconfig and ADT properties reflect the gesture-based phone target.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
@@ -85,6 +86,7 @@ findings = [
   "The closest platform is lavenderPkg (SDM660): its memory map already matches whyred, including the 0x9D400000 + 36 MiB display window.",
   "Lavender's USE_CUSTOM_DISPLAY_DRIVER points at a closed vendor DisplayDxe for its panel; whyred needs its own vendor DXE or a generic GOP over the ABL framebuffer.",
   "Booting with fastboot boot keeps the vendor boot and modem partitions untouched, which is the required safety boundary for this device.",
+  "check-whyred.sh verifies the firmware bootimg dtb compilation against the iOS 16 profile.",
 ]
 completion = [
   "A fastboot-booted firmware image reaches the UniXNU menu and publishes a framebuffer.",
@@ -420,12 +422,13 @@ configuration = [
   "[payload.adt] chip_id = \"636\", owned_memory_size = 0x40000000, packed_data_ramdisk = true, unique_chip_id = \"required\".",
 ]
 procedure = [
-  "scripts/package.sh --check --os 17",
-  "scripts/package.sh --os 17 --uefi ../uefi-whyred",
+  "scripts/package.sh --check --os 16",
+  "scripts/package.sh --os 16 --uefi ../uefi-whyred",
 ]
 findings = [
   "The template packaging action is retained but its firmware checkout is replaced by REPLACE/uefi-whyred because no whyred firmware repository exists.",
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
+  "package workflow and packaging options updated for the iOS 16 profile.",
 ]
 completion = [
   "Kernel, payload and boot image build reproducibly and contain every declared input.",
@@ -459,6 +462,7 @@ procedure = [
 ]
 findings = [
   "The previous port proved the userdata GPT values and recovery touch but never reached a stable UniXNU boot.",
+  "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution and ADT generation.",
 ]
 completion = [
   "Every claimed milestone has a reproducible command, a matching revision and an accessible log.",

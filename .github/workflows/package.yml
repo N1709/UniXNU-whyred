@@ -16,8 +16,8 @@ on:
       os:
         description: "OS profile of the images"
         type: choice
-        options: ["17"]
-        default: "17"
+        options: ["16", "17"]
+        default: "16"
 
 permissions:
   contents: read
