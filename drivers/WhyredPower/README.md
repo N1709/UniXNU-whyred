@@ -1,6 +1,11 @@
 # WhyredPower
 
-State: **planned**. No driver code yet.
+State: **adapted source**. `native/WhyredPower.cpp` (with `PowerRegs.h` and
+`PowerArb.h`) is the native UniXNU PM660/PM660L driver, ported from
+`qine233/UniXNU-clover` (commit `4c5652e`, BSD-2-Clause-Patent,
+`native/LICENSE`). The class, symbols and boot arguments are whyred's; the
+regulator list still has to match whyred's board DTS before this is built. It
+is not a build input yet.
 
 ## Role
 

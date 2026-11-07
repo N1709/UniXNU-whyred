@@ -69,12 +69,15 @@ results.
 - Firmware port, `N1709/uefi-whyred`: **100%** as a build. The DEBUG FD is
   `0x300000` bytes and the workflow produces one `Mu-whyred.img`. Hardware
   boot is **0%**.
-- Driver tree scaffold, `drivers/` with five hardware contracts: **100%** as
-  documentation.
-- Staged driver sources, `WhyredSdhci.c` and `WhyredTouch.c`: **100%** as
-  sources from the earlier whyred XNU port; not build inputs.
-- Native references, `drivers/reference/clover/` (six SDM660 UniXNU drivers,
-  BSD-2-Clause-Patent, commit `4c5652e`): **100%** as references.
+- Driver tree, `drivers/`, one directory per hardware block: **100%**.
+- XNU driver sources, `WhyredSdhci.c` and `WhyredTouch.c`: **100%** as sources
+  from the earlier whyred XNU port; not build inputs.
+- Native drivers, `drivers/Whyred*/native/` (all 11 SDM660 UniXNU drivers from
+  `qine233/UniXNU-clover`, BSD-2-Clause-Patent, commit `4c5652e`):
+  **100%** as sources; constants applied for whyred are listed per driver.
+  Covers Sdhci, Block, Display, Input, HidInput, Power, PMGR, Dsp, Gpu,
+  KeyStore and ArmCpu; `WhyredArmCpu` is a reference because the catalog
+  `ArmCpu` is the build input.
 - Hardware boot, storage, display, input, GPU, network, audio and power: **0%**.
 
 ## Packaging

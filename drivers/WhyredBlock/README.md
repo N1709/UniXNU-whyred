@@ -1,6 +1,10 @@
 # WhyredBlock
 
-State: **planned**. No driver code yet.
+State: **adapted source**. `native/WhyredBlock.cpp` is the native UniXNU
+`IOBlockStorageDevice` driver, ported from `qine233/UniXNU-clover` (commit
+`4c5652e`, BSD-2-Clause-Patent, `native/LICENSE`). The class names and boot
+arguments are whyred's; the clover README in `native/` keeps the original
+design notes. It is not a build input yet.
 
 ## Role
 

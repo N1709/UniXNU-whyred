@@ -122,6 +122,7 @@ procedure = [
 findings = [
   "ArmCpu requires /arm-io/intc to carry the exact 11-byte compatible \"arm,gic-v3\" and exactly two register pairs, so the DTS keeps the distributor and redistributor ranges separate.",
   "The vendor GICR allocation is 0x100000 bytes, which covers eight 128 KiB frames; a smaller range would fail the ArmCpu probe.",
+  "drivers/WhyredArmCpu/native is the SDM660 ArmCpu override from clover, kept for comparison; the catalog ArmCpu 93a5030 remains the build input.",
 ]
 completion = [
   "The boot CPU reaches arm_vm_init and the console.",
@@ -135,6 +136,7 @@ next_action = [
 ]
 evidence = [
   { kind = "source", reference = "soc/sdm660/dts/sdm660.dtsi", result = "8 CPUs, PSCI, GICv3 and the 19.2 MHz generic timer described from the vendor DT." },
+  { kind = "source", reference = "drivers/WhyredArmCpu/native/ArmCpu.cpp", result = "SDM660 ArmCpu override imported from clover; not selected in components.toml." },
 ]
 
 [[area]]
@@ -173,7 +175,7 @@ next_action = [
 evidence = [
   { kind = "source", reference = "dts/whyred.dts", result = "Single 2 GiB low DRAM range and the 0x9d400000 splash reservation." },
   { kind = "source", reference = "drivers/WhyredSdhci/WhyredSdhci.c", result = "Staged whyred SDHCI driver from the earlier XNU port; read, GPT and HFSX mount verified on the phone." },
-  { kind = "source", reference = "drivers/reference/clover/CloverSdhci/CloverSdhci.cpp", result = "Native UniXNU SDHCI reference for the same 0xc0c4000 controller." },
+  { kind = "source", reference = "drivers/WhyredSdhci/native/WhyredSdhci.cpp", result = "Native UniXNU SDHCI reference for the same 0xc0c4000 controller." },
 ]
 
 [[area]]
@@ -199,7 +201,7 @@ findings = [
   "whyred is eMMC, not UFS: ShengUfs and the native UFS path do not apply.",
   "The previous XNU storage driver read first block 0x2b8c00 and 109643 MiB from this GPT entry, which fixes the board geometry.",
   "drivers/WhyredSdhci/WhyredSdhci.c is the earlier whyred polled SDHCI driver, staged with the WHYRED guard; it verified PIO/SDMA reads, GPT parse and an HFSX mount on the phone.",
-  "drivers/reference/clover/CloverSdhci is the native UniXNU driver for the same SDCC1 block at 0xc0c4000 and is the model for the native whyred path; clover's userdata LBA window does not apply.",
+  "drivers/WhyredSdhci/native/WhyredSdhci.cpp is the native UniXNU driver adapted from clover for the same SDCC1 block; its userdata window is already set to whyred 0x2b8c00..0x1d7d6ff.",
 ]
 completion = [
   "GPT parse and capacity read match the device; OS and SystemOS windows stay inside userdata.",
@@ -233,7 +235,7 @@ procedure = [
 findings = [
   "The vendor stack is downstream MDP5/DSI, not the SM8550 SDE/DSI path used by ShengUfs-era components.",
   "Adreno 509 has no native driver, so the first display output must not depend on the GPU.",
-  "drivers/reference/clover/NativeMobileDisplay carries the native UniXNU GOP presenter and IOMobileFramebuffer ABI; only the 1080x2160 geometry and whyred DSI/MDP nodes change.",
+  "drivers/WhyredDisplay/native carries the native UniXNU GOP presenter and IOMobileFramebuffer ABI, adapted from clover; it takes the mode from the firmware GOP, so 1080x2160 needs no constant.",
 ]
 completion = [
   "A known frame appears at 1080x2160 with correct colors.",
@@ -246,7 +248,7 @@ next_action = [
   "Confirm the panel model from the bootloader or a device dump, then wire the GOP framebuffer for the first boot.",
 ]
 evidence = [
-  { kind = "source", reference = "drivers/reference/clover/NativeMobileDisplay/NativeGOPPresenter.cpp", result = "Native UniXNU display reference imported from clover; not built in place." },
+  { kind = "source", reference = "drivers/WhyredDisplay/native/NativeGOPPresenter.cpp", result = "Native UniXNU display source adapted from clover; not a build input yet." },
 ]
 
 [[area]]
@@ -269,7 +271,7 @@ findings = [
   "The old recovery DSX readiness test required vcc_i2c (pm660_l11) and the I2C pull-ups to stay powered; unbinding the device made later reads float at 0xff.",
   "The same-register read stream returned the PDT instead of repeating the entry; the reason is still open and is recorded for the new driver.",
   "drivers/WhyredTouch/WhyredTouch.c is the earlier whyred probe (TLMM bit-banged I2C, address scan, Synaptics RMI4 PDT read), staged under the WHYRED guard.",
-  "drivers/reference/clover/CloverInput shows the native UniXNU shape for the same QUP I2C block; its bus 0xc177000, GPIO 10/11 and SPI 97 differ from whyred's 0xc175000, GPIO 2/3 and SPI 95.",
+  "drivers/WhyredInput/native is the native UniXNU input transport adapted from clover; the bus is now 0xc175000, GPIO 2/3 and SPI 95 (INTID 127), while the candidate protocol table still needs whyred's Synaptics RMI4 path.",
 ]
 completion = [
   "Touches map to the 1080x2160 panel; simultaneous contacts keep stable IDs and release events arrive.",
@@ -286,7 +288,7 @@ evidence = []
 id = "gpu"
 status = "planned"
 components = []
-paths = ["dts/**", "package/**"]
+paths = ["drivers/WhyredGpu/**", "dts/**", "package/**"]
 inputs = [
   "Adreno 509, qcom,chipid = 0x05000900.",
 ]
@@ -298,6 +300,7 @@ procedure = [
 ]
 findings = [
   "Adreno740 and AdrenoMetal target SM8550 (A740) and are not compatible with the whyred GPU.",
+  "drivers/WhyredGpu/native is the clover Adreno driver adapted to whyred: the chip ID gate now expects 0x05000900 instead of a512's 0x05010200.",
 ]
 completion = [
   "A known image renders through a GPU submission and is presented by the selected Metal client.",
@@ -308,7 +311,9 @@ limits = [
 next_action = [
   "Keep the GPU out of the first boot and revisit after storage and display work.",
 ]
-evidence = []
+evidence = [
+  { kind = "source", reference = "drivers/WhyredGpu/native/GpuRegs.h", result = "kGpuChipidValue = 0x05000900 (Adreno 509); GPUCC base unchanged." },
+]
 
 [[area]]
 id = "network"
@@ -343,7 +348,7 @@ evidence = []
 id = "audio"
 status = "planned"
 components = []
-paths = ["dts/**", "package/**"]
+paths = ["drivers/WhyredDsp/**", "dts/**", "package/**"]
 inputs = [
   "SDM636 ADSP, GLINK and SLIMbus codec topology.",
 ]
@@ -355,6 +360,7 @@ procedure = [
 ]
 findings = [
   "No whyred audio inventory exists yet.",
+  "drivers/WhyredDsp/native is the clover ADSP driver; its SMEM 0x86000000 and doorbell 0x17911008 already match whyred, so the read-only first mode applies unchanged.",
 ]
 completion = [
   "A declared route carries playback or capture and handles start/stop.",
@@ -365,7 +371,9 @@ limits = [
 next_action = [
   "Inventory the vendor audio topology and firmware services.",
 ]
-evidence = []
+evidence = [
+  { kind = "source", reference = "drivers/WhyredDsp/native/DspRegs.h", result = "SMEM 0x86000000 + 2 MiB and SMP2P doorbell 0x17911008 match whyred's tree." },
+]
 
 [[area]]
 id = "power"
@@ -384,7 +392,7 @@ procedure = [
 ]
 findings = [
   "Unbinding the DSX touch device disabled vcc_i2c and the pull-ups, after which reads returned floating 0xff. The rail must stay on while the controller is used.",
-  "drivers/reference/clover/CloverPower and CloverPMGR show the native UniXNU PM660/PM660L and SDM660 clock-sequencing shape; whyred's wired rails still have to be selected from dts/whyred.dts.",
+  "drivers/WhyredPower/native and drivers/WhyredPMGR/native are the native UniXNU PM660/PM660L and SDM660 clock-sequencing drivers adapted from clover; whyred's wired rails still have to be selected from dts/whyred.dts.",
 ]
 completion = [
   "Battery readings and declared rails match the device; sleep/resume restores dependent peripherals.",

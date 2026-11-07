@@ -1,6 +1,11 @@
 # WhyredDisplay
 
-State: **planned**. No driver code yet.
+State: **adapted source**. `native/` holds the native UniXNU display stack
+(`NativeMobileDisplay`, `NativeLegacyDisplay`, `NativeGOPPresenter`) from
+`qine233/UniXNU-clover` (commit `4c5652e`, BSD-2-Clause-Patent,
+`native/LICENSE`). It reads the GOP framebuffer dimensions from the firmware
+console, so the 1080x2160 mode needs no code change; the DSI/MDP panel path is
+still planned. It is not a build input yet.
 
 ## Two stages
 

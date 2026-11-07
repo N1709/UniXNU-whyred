@@ -1,8 +1,15 @@
 # WhyredSdhci
 
-State: **staged source**. `WhyredSdhci.c` is the polled SDHCI eMMC driver from
-the earlier whyred XNU port, carried here as the board driver source. It is not
-a build input yet (see `../README.md`).
+State: **adapted source**. Two implementations are staged here:
+
+- `WhyredSdhci.c` — the polled SDHCI eMMC driver from the earlier whyred XNU
+  port, with the `WHYRED` guard.
+- `native/WhyredSdhci.cpp` — the native UniXNU driver ported from
+  `qine233/UniXNU-clover` (commit `4c5652e`, BSD-2-Clause-Patent,
+  `native/LICENSE`), with the class, symbols and boot arguments renamed to
+  whyred and the `userdata` window set to `0x2b8c00..0x1d7d6ff`.
+
+Neither is a build input yet (see `../README.md`).
 
 ## Hardware contract
 

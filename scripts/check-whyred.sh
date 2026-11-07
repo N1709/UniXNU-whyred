@@ -84,7 +84,19 @@ PY
 pass "unixnu tree"
 
 # 6. Staged driver sources: present, and free of the old project's naming.
-for source in drivers/WhyredSdhci/WhyredSdhci.c drivers/WhyredTouch/WhyredTouch.c; do
+for source in \
+    drivers/WhyredSdhci/WhyredSdhci.c drivers/WhyredTouch/WhyredTouch.c \
+    drivers/WhyredSdhci/native/WhyredSdhci.cpp \
+    drivers/WhyredBlock/native/WhyredBlock.cpp \
+    drivers/WhyredInput/native/WhyredInput.cpp \
+    drivers/WhyredPower/native/WhyredPower.cpp \
+    drivers/WhyredPMGR/native/WhyredPMGR.cpp \
+    drivers/WhyredDisplay/native/NativeGOPPresenter.cpp \
+    drivers/WhyredDsp/native/WhyredDsp.cpp \
+    drivers/WhyredGpu/native/WhyredGpu.cpp \
+    drivers/WhyredHidInput/native/NativeHidInput.cpp \
+    drivers/WhyredKeyStore/native/NativeKeyStoreEvents.cpp \
+    drivers/WhyredArmCpu/native/ArmCpu.cpp; do
     [ -s "$DEVICE/$source" ] || fail "staged source missing: $source"
 done
 # Reject the retired project name and its spacing/punctuation variants. The
