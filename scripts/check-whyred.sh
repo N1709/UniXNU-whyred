@@ -14,7 +14,7 @@ UNIXNU=${1:-$DEVICE/../UniXNU}
 UNIXNU=$(cd "$UNIXNU" && pwd)
 OUT=${CHECK_OUT:-${TMPDIR:-/tmp}/whyred-check}
 SEED=${UNIXNU_UNIQUE_CHIP_ID:-0000000000000636}
-CONFIG="ipados-17.7.11-21H461/whyred"
+CONFIG="ios-16.7.16-20H392/whyred"
 
 mkdir -p "$OUT"
 
@@ -39,7 +39,7 @@ pass "dtc ($(stat -c %s "$OUT/whyred.dtb") bytes)"
 
 # 2. ADT generation with the board memory, splash and CPU set.
 python3 "$UNIXNU/scripts/make-adt.py" --dtb "$OUT/whyred.dtb" \
-    --os-profile "$UNIXNU/profiles/os/ipados-17.7.11-21H461/profile.toml" \
+    --os-profile "$UNIXNU/profiles/os/ios-16.7.16-20H392/profile.toml" \
     --board "$DEVICE/board.toml" \
     --unique-chip-id "$SEED" --data-ramdisk --trust-cache \
     --output "$OUT/whyred.adt" >/dev/null \

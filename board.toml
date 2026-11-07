@@ -3,15 +3,14 @@ schema_version = 2
 # Xiaomi Redmi Note 5 / Note 5 AI (whyred), Qualcomm SDM636.
 # Hardware values: Whyred-Dev/android_kernel_xiaomi_sdm660, lineage-15.1,
 # d85fa37dba33a7ad7a4f5435930cae06df18f7db (sdm636.dtsi, sdm660_whyred.dtsi).
-# Target image: unmodified iPad7,1 / iPadOS 17.7.11 / 21H461, 4 KiB pages.
-# Kryo 260 is ARMv8.0 without pointer authentication, so the arm64 profile is
-# used, not arm64e.
+# Target image: unmodified iPhone X (iPhone10,3) / iOS 16.7.16 / 20H392, 4 KiB pages.
+# Kryo 260 is ARMv8.0 without pointer authentication, matching arm64.
 
 [board]
 name = "whyred"
 soc = "SDM636"
 soc_source = "sdm660"
-os_profile = "ipados-17.7.11-21H461"
+os_profile = "ios-16.7.16-20H392"
 description = "Xiaomi Redmi Note 5 (whyred)"
 kit = "whyred"
 
@@ -28,7 +27,7 @@ lba_bytes = 4096
 
 [kernel]
 defconfig = "whyred_defconfig"
-config_fragments = ["arch:configs/common.config", "soc:configs/sdm660.config", "os:configs/ipados.config"]
+config_fragments = ["arch:configs/common.config", "soc:configs/sdm660.config", "os:configs/ios.config"]
 patch_series = ["arch:patches/xnu/series", "soc:patches/xnu/series", "os:patches/xnu/series", "device:patches/xnu/series"]
 
 [device_tree]
@@ -91,4 +90,4 @@ props = [
 unixnu = "../UniXNU"
 
 [package.defconfig]
-"ipados-17.7.11-21H461" = "whyred_defconfig"
+"ios-16.7.16-20H392" = "whyred_defconfig"

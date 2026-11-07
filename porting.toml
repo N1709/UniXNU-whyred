@@ -3,8 +3,8 @@ schema_version = 1
 [device]
 name = "whyred"
 soc = "SDM636"
-os_profile = "ipados-17.7.11-21H461"
-summary = "Xiaomi Redmi Note 5 (whyred), SDM636 / Kryo 260 / ARMv8.0. Format 2 device repository targeting the unmodified iPad7,1 iPadOS 17.7.11 image; firmware, storage, display and input are the open bring-up areas."
+os_profile = "ios-16.7.16-20H392"
+summary = "Xiaomi Redmi Note 5 (whyred), SDM636 / Kryo 260 / ARMv8.0. Format 2 device repository targeting the unmodified iPhone X (iPhone10,3) iOS 16.7.16 image; firmware, storage, display and input are the open bring-up areas."
 
 [[area]]
 id = "configuration"
@@ -13,13 +13,13 @@ components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoo
 paths = ["board.toml", "feeds.toml", "soc/**", "configs/**", "dts/**", "drivers/**", ".github/**", ".gitignore", "local.toml.example"]
 inputs = [
   "Xiaomi whyred (SDM636) with 8 Kryo 260 cores: 4x Cortex-A73 MPIDR 0x100-0x103 and 4x Cortex-A53 MPIDR 0x0-0x3; qcom,msm-id = <345 0x0>.",
-  "Unmodified iPad7,1 / iPadOS 17.7.11 / 21H461 image with 4 KiB pages; Kryo 260 is ARMv8.0 without pointer authentication, so the arm64 profile is used.",
+  "Unmodified iPhone X (iPhone10,3) / iOS 16.7.16 / 20H392 image with 4 KiB pages; Kryo 260 is ARMv8.0 without pointer authentication, so the arm64 profile is used.",
   "SDM660/SDM636 shared support is carried locally in soc/sdm660 until UniXNU-sdm660-common is published; feeds.toml selects it as kind = \"soc\".",
 ]
 configuration = [
-  "board.toml: schema_version = 2, soc = \"SDM636\", soc_source = \"sdm660\", os_profile = \"ipados-17.7.11-21H461\", kit = \"whyred\", example absent.",
+  "board.toml: schema_version = 2, soc = \"SDM636\", soc_source = \"sdm660\", os_profile = \"ios-16.7.16-20H392\", kit = \"whyred\", example absent.",
   "[components] include selects ArmDTPlatform, ArmCpu, SoftwareAES, XnuPrelink and DarwinBoot; the resolver adds their dependencies in build order.",
-  "config_fragments = arch:configs/common.config, soc:configs/sdm660.config, os:configs/ipados.config; configs/whyred_defconfig applies the board overrides last.",
+  "config_fragments = arch:configs/common.config, soc:configs/sdm660.config, os:configs/ios.config; configs/whyred_defconfig applies the board overrides last.",
   "patch_series = arch, soc, os and device series in that order; the soc and device series are empty for now.",
   "dts/whyred.dts includes soc:dts/sdm660.dtsi; the board owns RAM, the splash reservation and the product compatible.",
 ]
@@ -39,7 +39,7 @@ findings = [
   "board.toml [firmware] now resolves the published N1709/uefi-whyred tree: dsc whyredPkg/whyred.dsc, fd Build/whyredPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd and the EDK II submodule/package list used by unixnu build firmware.",
 ]
 completion = [
-  "unixnu status resolves arch arm64, soc sdm660, OS ipados-17.7.11-21H461 and device whyred with no missing source.",
+  "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
   "porting-record check reports 13 structured areas and no errors.",
   "dtc and make-adt.py accept dts/whyred.dts with the selected SoC include.",
 ]
@@ -117,7 +117,7 @@ configuration = [
 ]
 procedure = [
   "dtc -I dts -O dtb -i ../UniXNU-whyred/soc/sdm660/dts -o /tmp/whyred.dtb ../UniXNU-whyred/dts/whyred.dts",
-  "python3 scripts/make-adt.py --dtb /tmp/whyred.dtb --os-profile profiles/os/ipados-17.7.11-21H461/profile.toml --board ../UniXNU-whyred/board.toml --unique-chip-id 0000000000000636 --data-ramdisk --trust-cache --output /tmp/whyred.adt",
+  "python3 scripts/make-adt.py --dtb /tmp/whyred.dtb --os-profile profiles/os/ios-16.7.16-20H392/profile.toml --board ../UniXNU-whyred/board.toml --unique-chip-id 0000000000000636 --data-ramdisk --trust-cache --output /tmp/whyred.adt",
 ]
 findings = [
   "ArmCpu requires /arm-io/intc to carry the exact 11-byte compatible \"arm,gic-v3\" and exactly two register pairs, so the DTS keeps the distributor and redistributor ranges separate.",
@@ -411,12 +411,12 @@ status = "planned"
 components = ["XnuPrelink", "DarwinBoot"]
 paths = ["scripts/**", "patches/**", "package/**", "proprietary-files.txt"]
 inputs = [
-  "iPad7,1 / iPadOS 17.7.11 / 21H461 IPSW supplied by the OS profile.",
+  "iPhone X (iPhone10,3) / iOS 16.7.16 / 20H392 IPSW supplied by the OS profile.",
   "Board platform seed through --unique-chip-id or UNIXNU_UNIQUE_CHIP_ID.",
   "Firmware checkout through --uefi; it does not exist for whyred yet.",
 ]
 configuration = [
-  "[package] unixnu = \"../UniXNU\"; [package.defconfig] maps ipados-17.7.11-21H461 to whyred_defconfig.",
+  "[package] unixnu = \"../UniXNU\"; [package.defconfig] maps ios-16.7.16-20H392 to whyred_defconfig.",
   "[payload.adt] chip_id = \"636\", owned_memory_size = 0x40000000, packed_data_ramdisk = true, unique_chip_id = \"required\".",
 ]
 procedure = [
