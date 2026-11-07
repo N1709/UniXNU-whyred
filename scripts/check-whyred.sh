@@ -125,7 +125,14 @@ clang++ -Wall -Wextra -Werror -std=c++17 -I"$DEVICE/drivers/WhyredDisplay/native
 "$OUT/whyred_display_test" >/dev/null || fail "run whyred_display_test"
 pass "display host model (WhyredDisplay)"
 
-# 9. Record checker.
+# 9. Host input logic check (WhyredInput: Synaptics RMI4 + Novatek).
+clang++ -Wall -Wextra -Werror -std=c++17 -I"$DEVICE/drivers/WhyredInput/native" \
+    -o "$OUT/whyred_input_test" "$DEVICE/drivers/WhyredInput/native/tests/whyred_input_host.cpp" \
+    || fail "compile whyred_input_test"
+"$OUT/whyred_input_test" >/dev/null || fail "run whyred_input_test"
+pass "input host model (WhyredInput)"
+
+# 10. Record checker.
 python3 "$UNIXNU/scripts/porting-record.py" check --device "$DEVICE" \
     || fail "porting-record.py check"
 

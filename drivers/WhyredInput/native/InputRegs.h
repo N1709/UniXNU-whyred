@@ -431,4 +431,48 @@
 #define kFtNameLen          22U             // EDT_NAME_LEN (23) minus the terminator
 #define kFtNameBuf          24U
 
+// ------------------------------------------------------------------------ whyred touch candidates
+//
+// whyred panels ship with one of two touch IC families:
+//   1. Synaptics DSX (RMI4) at I2C address 0x20 (td4310 panels).
+//      Uses two-byte page select (0xFF <page>), PDT starting at 0x00E9 down to 0x00D0,
+//      F01 (device control, product ID at offset 11) and F12 (2D touch data base 0x06).
+//   2. Novatek at I2C address 0x62 (bootloader mode) or 0x01 (normal runtime mode, nt36672 panels).
+//      Uses page select write (0xFF <page>), reading chip ID bytes at register 0x00.
+#define kTouchAddrSynaptics      0x20U
+#define kTouchAddrNovatekBoot    0x62U
+#define kTouchAddrNovatekNormal  0x01U
+
+enum WhyredTouchVariant {
+    kWhyredTouchVariantNone = 0,
+    kWhyredTouchVariantSynaptics = 1,
+    kWhyredTouchVariantNovatekBoot = 2,
+    kWhyredTouchVariantNovatekNormal = 3,
+};
+
+#define kDsxAddr                 kTouchAddrSynaptics
+#define kDsxPdtStart             0x00e9U
+#define kDsxPdtEnd               0x00d0U
+#define kDsxPdtEntrySize         6U
+#define kDsxF01QueryLen          21U
+#define kDsxProductIdOffset      11U
+#define kDsxProductIdSize        10U
+#define kDsxFnDeviceControl      0x01U
+#define kDsxFnMultiTouch         0x12U
+#define kDsxFnFlash              0x34U
+
+#define kNvtAddrBoot             kTouchAddrNovatekBoot
+#define kNvtAddrNormal           kTouchAddrNovatekNormal
+#define kNvtPageSelectReg        0xffU
+#define kNvtRegChipId            0x00U
+
+#define kDsxF12DataBase          0x0006U         // F12 data register base discovered in recovery test
+#define kDsxF12MaxFingers        10U             // 10 multi-touch slots (ABS_MT_SLOT 0..9)
+#define kDsxPanelWidth           1080U           // whyred panel width
+#define kDsxPanelHeight          2160U           // whyred panel height
+
+#define kWhyredResetActiveMs     20U             // DT synaptics,reset-active-ms = 20
+#define kWhyredResetDelayMs      200U            // DT synaptics,reset-delay-ms = 200
+#define kWhyredResetSettleMs     50U             // settle time after reset deassertion
+
 #endif  // WHYRED_INPUT_REGS_H

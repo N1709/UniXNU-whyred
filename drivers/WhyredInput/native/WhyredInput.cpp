@@ -436,11 +436,11 @@ static bool enableBranch (void)
 static void programI2cPins (void)
 {
   for (uint32_t i = 0; i < 2; i++) {
-    const uint32_t pin = 10u + i;
+    const uint32_t pin = kInputPinSda + i;
     const uint32_t ctl = pinRead (pin, kPinCtl);
     const uint32_t next = input_i2c_pin_ctl (ctl);
     pinWrite (pin, kPinCtl, next);
-    IOLog ("clover r181: pin %u i2c ctl %08x->%08x io=%08x\n",
+    IOLog ("whyred input: pin %u i2c ctl %08x->%08x io=%08x\n",
            pin, ctl, pinRead (pin, kPinCtl), pinRead (pin, kPinIo));
   }
   whyred_input_observation[15] = kInputStepPins;
@@ -788,16 +788,32 @@ static bool chipRead (uint8_t address, const uint8_t *reg, uint32_t regLen, uint
   return finishTransfer ();
 }
 
-// A bare "does this address ACK?" ping with no data after it is deliberately NOT provided: in a v2
-// DATAWR/DATARD tag a byte count of 0 does not mean zero, it means 256 (i2c-qup.c:600-608, where
-// qup_i2c_get_data_len() == QUP_READ_LIMIT is encoded as 0), so the smallest honest question this
-// core can ask is one register byte read back -- which is also the smallest question the two chip
-// drivers ask. That is what probeCandidate() below sends.
+static bool chipWrite (uint8_t address, const uint8_t *data, uint32_t dataLen, const char *why)
+{
+  if (!data || dataLen == 0 || dataLen > 32) {
+    return false;
+  }
+  if (!bringUpCore ()) {
+    return false;
+  }
+  uint8_t wire[kQupMaxTagsLen + 32];
+  const uint32_t wireLen = input_write_tags (address, dataLen, 1, wire, sizeof (wire));
+  if (wireLen != kQupMaxTagsLen) {
+    return false;
+  }
+  for (uint32_t i = 0; i < dataLen; i++) {
+    wire[kQupMaxTagsLen + i] = data[i];
+  }
+  Segment write { wire, wireLen + dataLen, nullptr, 0, true, true };
+  if (!runSegment (write, why)) {
+    return false;
+  }
+  return finishTransfer ();
+}
 
 // ------------------------------------------------------------------ mode 3: who is on the bus?
 //
-// Printable form of a response, because the reading that decides the next round is a name, not a
-// number: the Goodix pid field is ASCII, and so is the EDT name.
+// Printable form of a response
 static void printBytes (const char *label, const uint8_t *data, uint32_t len)
 {
   char hex[3 * 8 + 1];
@@ -812,112 +828,120 @@ static void printBytes (const char *label, const uint8_t *data, uint32_t len)
   }
   hex[h] = '\0';
   text[t] = '\0';
-  IOLog ("clover r181: %s n=%u hex=%s ascii=[%s]\n", label, len, hex, text);
+  IOLog ("whyred input: %s n=%u hex=%s ascii=[%s]\n", label, len, hex, text);
 }
 
-// The vendor's reset, gt9xx.c:532-561, with the vendor's own timings: T2 the argument (20 ms), T3
-// 2 ms, T4 6 ms, then int-sync's 50 ms. INT is driven to (address == 0x14), i.e. low for the
-// candidate at 0x5d; the reset line is left high at the end and INT goes back to input, which is
-// the state the driver runs in once it has probed.
-//
-// The drive strength comes from the DT, not from a guess: clover.dts's `ts_int_defalut` state puts
-// gpio67 at 16 mA (kTsIntDrive) and the pin has no i2c or other function to contend with. Setting
-// it here is the only CTL write this sequence makes beyond mux and OE, and it is done once, before
-// the line is driven, so both `ts_int_output_low` and `ts_int_output_high` inherit it.
-static void goodixReset (uint8_t address)
+// whyred touch reset sequence:
+// synaptics,reset-active-ms = 20, synaptics,reset-delay-ms = 200, 50 ms settle time.
+// INT GPIO 67 returned to input at completion.
+static void whyredTouchReset (void)
 {
-  const uint32_t ctl = pinRead (67, kPinCtl);
-  pinWrite (67, kPinCtl, input_pin_drive_ctl (ctl, kTsIntDrive));
-  pinOutput (66, 0);
-  waitMs (20);
-  pinOutput (67, address == 0x14 ? 1 : 0);
-  waitMs (2);
-  pinOutput (66, 1);
-  waitMs (6);
-  pinOutput (66, 1);
-  pinOutput (67, 0);
-  waitMs (50);
-  pinInput (67);
-  IOLog ("clover r181: reset done addr=0x%02x rst=%08x int=%08x\n",
-         address, pinRead (66, kPinCtl), pinRead (67, kPinCtl));
+  pinOutput (kInputPinRst, 0);
+  waitMs (kWhyredResetActiveMs);
+  pinOutput (kInputPinRst, 1);
+  waitMs (kWhyredResetDelayMs + kWhyredResetSettleMs);
+  pinInput (kInputPinIrq);
+  IOLog ("whyred input: reset pulse done (20ms low, 250ms settle), rst=%08x int=%08x\n",
+         pinRead (kInputPinRst, kPinCtl), pinRead (kInputPinIrq, kPinCtl));
 }
 
-// One candidate, one convention. Goodix addresses its registers with two bytes, big-endian
-// (GTP_ADDR_LENGTH 2, and gt9xx.c:1225 builds {REG >> 8, REG & 0xff}); EDT/FocalTech uses one.
-// The first transaction asked of each is the smallest real read its own driver does, so a NACK
-// here means the address is empty, not that a made-up probe failed.
-static void probeCandidate (uint8_t address, const char *name, bool isGoodix)
+static struct InputWhyredUnifiedDevice gWhyredTouchDevice;
+
+// Synaptics DSX (RMI4/RMI5) at 0x20
+static bool probeSynapticsDsx (uint8_t address, struct InputWhyredUnifiedDevice *dev)
 {
-  uint8_t reg[2];
-  reg[0] = isGoodix ? static_cast<uint8_t> (kGtRegCommand >> 8) : static_cast<uint8_t> (kFtRegMode);
-  reg[1] = isGoodix ? static_cast<uint8_t> (kGtRegCommand & 0xff) : 0;
-  const uint32_t regLen = isGoodix ? 2u : 1u;
-  uint8_t one = 0;
-  char why[48];
-  snprintf (why, sizeof (why), "probe %s", name);
-  if (!chipRead (address, reg, regLen, &one, 1, why)) {
-    IOLog ("clover r181: %s no answer\n", name);
-    return;
+  // Select page 0 (0xFF 0x00)
+  const uint8_t page0[2] = { kNvtPageSelectReg, 0x00 };
+  if (!chipWrite (address, page0, 2, "dsx page 0")) {
+    IOLog ("whyred input: synaptics 0x%02x page 0 write failed/NACK\n", address);
+    return false;
   }
-  IOLog ("clover r181: %s ACK reg0=%02x\n", name, one);
+
+  // Read PDT starting from kDsxPdtStart (0x00e9) down to kDsxPdtEnd (0x00d0)
+  struct InputWhyredDsxPdt pdt;
+  memset (&pdt, 0, sizeof (pdt));
+
+  for (uint16_t addr = kDsxPdtStart; addr > kDsxPdtEnd; addr = static_cast<uint16_t> (addr - kDsxPdtEntrySize)) {
+    uint8_t reg = static_cast<uint8_t> (addr & 0xff);
+    uint8_t entry[kDsxPdtEntrySize] = { 0 };
+    if (!chipRead (address, &reg, 1, entry, sizeof (entry), "dsx pdt entry")) {
+      IOLog ("whyred input: synaptics 0x%02x pdt read failed at 0x%04x\n", address, addr);
+      break;
+    }
+    if (!entry[0] && !entry[1] && !entry[2] && !entry[3] && !entry[4] && !entry[5]) {
+      continue;
+    }
+    input_dsx_pdt_parse_entry (entry, &pdt);
+  }
+
+  if (!pdt.found_f01) {
+    IOLog ("whyred input: synaptics 0x%02x answered but no F01 in PDT\n", address);
+    return false;
+  }
+
+  // Read F01 query block to get product ID string
+  uint8_t f01_query[kDsxF01QueryLen] = { 0 };
+  uint8_t f01_reg = static_cast<uint8_t> (pdt.f01_query & 0xff);
+  if (chipRead (address, &f01_reg, 1, f01_query, sizeof (f01_query), "dsx f01 query")) {
+    input_dsx_extract_product_id (f01_query, sizeof (f01_query), pdt.product_id);
+  }
+
+  input_whyred_setup_synaptics (dev, &pdt);
   whyred_input_observation[9] = address;
-  whyred_input_observation[10] = one;
-  if (isGoodix) {
-    // gtp_get_fw_info(): 6 bytes at 0x8140, twice, because a bus nobody has driven before can
-    // produce a plausible first answer and the two have to agree before the name is trusted.
-    uint8_t first[kGtVersionLen] = { 0 };
-    uint8_t second[kGtVersionLen] = { 0 };
-    reg[0] = static_cast<uint8_t> (kGtRegVersion >> 8);
-    reg[1] = static_cast<uint8_t> (kGtRegVersion & 0xff);
-    snprintf (why, sizeof (why), "goodix version");
-    if (chipRead (address, reg, 2, first, kGtVersionLen, why)) {
-      printBytes ("goodix 0x8140 a", first, kGtVersionLen);
-      snprintf (why, sizeof (why), "goodix version b");
-      if (chipRead (address, reg, 2, second, kGtVersionLen, why)) {
-        printBytes ("goodix 0x8140 b", second, kGtVersionLen);
-        // gtp_i2c_read_dbl_check's agreement count, and the vendor's own decode (gt9xx.c:1222-1258),
-        // with its 8-byte buffer's [2..7] being this 6-byte data read's [0..5]. Both are the layer's,
-        // so the 8-to-6 shift lives in exactly one expression.
-        const uint32_t agree = input_bytes_agree (first, second, kGtVersionLen);
-        struct InputGoodixId id;
-        input_goodix_identify (first, kGtVersionLen, &id);
-        IOLog ("clover r181: goodix agree=%u/6 pid=%c%c%c%c ver=%04x\n",
-               agree, id.pid[0], id.pid[1], id.pid[2], id.pid[3], id.version);
-        whyred_input_observation[11] = id.version;
-      }
-    }
-    uint8_t sensor = 0;
-    reg[0] = static_cast<uint8_t> (kGtRegSensorId >> 8);
-    reg[1] = static_cast<uint8_t> (kGtRegSensorId & 0xff);
-    snprintf (why, sizeof (why), "goodix sensor_id");
-    if (chipRead (address, reg, 2, &sensor, 1, why)) {
-      IOLog ("clover r181: goodix sensor_id=%02x valid=%u\n", sensor,
-             input_goodix_sensor_id_valid (sensor));
-    }
-    return;
+  whyred_input_observation[10] = pdt.f12_data ? pdt.f12_data : kDsxF12DataBase;
+  whyred_input_observation[11] = pdt.f01_query;
+
+  IOLog ("whyred input: Synaptics DSX (RMI4/RMI5) ACK at 0x%02x, pid='%s', F12 data=0x%04x, F01 q=0x%04x\n",
+         address, pdt.product_id, pdt.f12_data, pdt.f01_query);
+  return true;
+}
+
+// Novatek NT36672 at 0x62 (bootloader) or 0x01 (runtime)
+static bool probeNovatek (uint8_t address, const char *name, struct InputWhyredUnifiedDevice *dev)
+{
+  uint8_t reg = kNvtRegChipId;
+  uint8_t chip_id[3] = { 0 };
+  if (!chipRead (address, &reg, 1, chip_id, sizeof (chip_id), name)) {
+    IOLog ("whyred input: %s at 0x%02x no answer\n", name, address);
+    return false;
   }
-  // edt_ft5x06_ts_identify(): 22 bytes at 0xBB, "EP0" at [1] means M06 (a leading response byte),
-  // at [0] means M12, anything else is a generic FT firmware.
-  uint8_t name22[kFtNameBuf] = { 0 };
-  reg[0] = static_cast<uint8_t> (kFtRegName);
-  snprintf (why, sizeof (why), "ft name");
-  if (chipRead (address, reg, 1, name22, kFtNameLen, why)) {
-    printBytes ("ft 0xbb", name22, kFtNameLen);
-    const bool m06 = input_ft_is_m06 (name22, kFtNameLen) != 0;
-    IOLog ("clover r181: ft guess=%s\n", m06 ? "m06-ish" : "m12-or-generic");
-    uint8_t fw[2] = { 0 };
-    reg[0] = static_cast<uint8_t> (kFtRegFwVersion);
-    snprintf (why, sizeof (why), "ft fw");
-    if (chipRead (address, reg, 1, fw, 2, why)) {
-      printBytes ("ft 0xa6", fw, 2);
-    }
+
+  if (!input_nvt_is_valid_chip_id (chip_id)) {
+    IOLog ("whyred input: %s at 0x%02x returned invalid chip ID %02x %02x\n",
+           name, address, chip_id[0], chip_id[1]);
+    return false;
   }
+
+  input_whyred_setup_novatek (dev, address, chip_id);
+  whyred_input_observation[9] = address;
+  whyred_input_observation[10] = chip_id[0];
+  whyred_input_observation[11] = static_cast<uint64_t> ((chip_id[1] << 8) | chip_id[0]);
+
+  IOLog ("whyred input: Novatek touch IC ACK at 0x%02x (%s), chip ID: %02x %02x\n",
+         address, name, chip_id[0], chip_id[1]);
+  return true;
+}
+
+static bool probeWhyredUnifiedCandidates (struct InputWhyredUnifiedDevice *dev)
+{
+  // 1. Synaptics DSX (RMI4 / RMI5) at 0x20
+  if (probeSynapticsDsx (kTouchAddrSynaptics, dev)) {
+    return true;
+  }
+  // 2. Novatek at 0x62 (bootloader)
+  if (probeNovatek (kTouchAddrNovatekBoot, "Novatek Bootloader", dev)) {
+    return true;
+  }
+  // 3. Novatek at 0x01 (runtime)
+  if (probeNovatek (kTouchAddrNovatekNormal, "Novatek Runtime", dev)) {
+    return true;
+  }
+  return false;
 }
 
 // ------------------------------------------------------------------ the entry point
 //
-// Opt-in, silent when the boot argument is absent, and never fatal. The chain is
-// sheng_pmgr_run() -> whyred_emmc_run() -> this, so the eMMC report is always ahead of this one.
+// Opt-in, silent when the boot argument is absent, and never fatal.
 extern "C" void whyred_input_run (void)
 {
   unsigned mode = 0;
@@ -926,14 +950,12 @@ extern "C" void whyred_input_run (void)
   }
   whyred_input_observation[0] = mode;
   if (mode != 1 && mode != 2 && mode != 3) {
-    IOLog ("clover r181: mode %u is not implemented (1 dump, 2 bring-up, 3 probe)\n", mode);
+    IOLog ("whyred input: mode %u is not implemented (1 dump, 2 bring-up, 3 probe)\n", mode);
     return;
   }
   refreshTicksPerMs ();
 
-  // Map everything first. A window that is not in the platform's memory map is a payload-geometry
-  // answer, not a hardware answer, and it has to be distinguishable from a dead bus -- so a
-  // failure says which base and stops, instead of reporting the zeros a null read would give.
+  // Map everything first.
   struct Needed { Window *window; uint64_t phys; uint32_t size; const char *label; };
   const Needed needed[] = {
     { &gAhbHalt, kGccAhbHaltPhys, kGccWindowSize, "gcc-ahb-halt" },
@@ -941,39 +963,34 @@ extern "C" void whyred_input_run (void)
     { &gI2cClock, kGccI2cPhys, kGccWindowSize, "gcc-i2c" },
     { &gPinsI2c, kPinGpio2Phys, kPinPairSize, "tlmm-gpio2" },
     { &gPinsTouch, kPinGpio66Phys, kPinPairSize, "tlmm-gpio66" },
-    { &gQup, kQupPhys, kQupSize, "qup3-i2c" },
+    { &gQup, kQupPhys, kQupSize, "qup1-i2c" },
   };
   for (uint32_t i = 0; i < sizeof (needed) / sizeof (needed[0]); i++) {
     if (!mapWindow (*needed[i].window, needed[i].phys, needed[i].size)) {
-      IOLog ("clover r181: map %s %llx failed\n", needed[i].label,
+      IOLog ("whyred input: map %s %llx failed\n", needed[i].label,
              static_cast<unsigned long long> (needed[i].phys));
       whyred_input_observation[1] = needed[i].phys;
       whyred_input_observation[15] = kInputFailMap;
       return;
     }
   }
-  // What the device tree says about this hardware, printed once so a reading can be compared with
-  // the declaration rather than with a remembered number. These four are the constants the mapping
-  // above deliberately did NOT use -- the QUP block is mapped a whole 4 KiB page where the DT
-  // declares 0x600, and GCC's three registers live 0x3b000 apart inside a node the DT describes as
-  // one 0x94000 range, so this line is the record of that gap. The interrupt is named but never
-  // used: every transfer here is polled.
-  IOLog ("clover r181: declared qup=%llx size=%u dt_size=%u gcc=%llx+%u intid=%u\n",
+
+  IOLog ("whyred input: declared qup=%llx size=%u dt_size=%u gcc=%llx+%u intid=%u\n",
          static_cast<unsigned long long> (kQupPhys), kQupSize, kQupDtSize,
          static_cast<unsigned long long> (kGccPhys), kGccSize, kQupIntid);
-  IOLog ("clover r181: mode %u windows up, tps=%llu\n", mode,
+  IOLog ("whyred input: mode %u windows up, tps=%llu\n", mode,
          static_cast<unsigned long long> (gTicksPerMs));
 
   dumpClocks ();
-  dumpPin (10, "sda");
-  dumpPin (11, "scl");
-  dumpPin (66, "rst");
-  dumpPin (67, "irq");
+  dumpPin (kInputPinSda, "sda");
+  dumpPin (kInputPinScl, "scl");
+  dumpPin (kInputPinRst, "rst");
+  dumpPin (kInputPinIrq, "irq");
   dumpQup ("before");
 
   if (mode == 1) {
     // Read-only, as asked. Nothing above wrote a single byte.
-    IOLog ("clover r181: mode 1 wrote nothing\n");
+    IOLog ("whyred input: mode 1 wrote nothing\n");
     whyred_emmc_flush_cache ();
     return;
   }
@@ -992,49 +1009,44 @@ extern "C" void whyred_input_run (void)
   dumpClocks ();
   dumpQup ("after");
   if (!up) {
-    IOLog ("clover r181: bring-up stopped at verdict=%llu, not probing\n",
+    IOLog ("whyred input: bring-up stopped at verdict=%llu, not probing\n",
            static_cast<unsigned long long> (whyred_input_observation[15]));
     whyred_emmc_flush_cache ();
     return;
   }
 
   if (mode == 2) {
-    // A bring-up that got here says the clocks took and the core came out of reset. Whether the
-    // FIFO sizes make sense is the last thing mode 2 can answer without driving the bus, so it is
-    // said in words: out_fifo_sz came from the block/FIFO fields, and a zero would mean the
-    // IO_MODE read was not the hardware's own size description.
-    IOLog ("clover r181: bring-up ok fifo out=%u in=%u clk=%08x\n",
+    IOLog ("whyred input: bring-up ok fifo out=%u in=%u clk=%08x\n",
            gOutFifoSize, gInFifoSize, qupRead (kQupI2cClkCtl));
     whyred_emmc_flush_cache ();
     return;
   }
 
-  // Both candidates, before any reset: if the firmware left the panel released, this is the whole
-  // answer, and a probe that needed a reset would have hidden it.
-  probeCandidate (static_cast<uint8_t> (kGtAddr), kGtAddrName, true);
-  probeCandidate (static_cast<uint8_t> (kFtAddr), kFtAddrName, false);
-  if (!whyred_input_observation[9]) {
-    IOLog ("clover r181: neither address answered before reset, pulsing\n");
-    goodixReset (static_cast<uint8_t> (kGtAddr));
-    probeCandidate (static_cast<uint8_t> (kGtAddr), kGtAddrName, true);
-    if (!whyred_input_observation[9]) {
-      probeCandidate (static_cast<uint8_t> (kFtAddr), kFtAddrName, false);
-    }
+  // Mode 3: unified candidate probing (Synaptics DSX RMI4/RMI5 & Novatek)
+  input_whyred_init_unified_device (&gWhyredTouchDevice);
+
+  // Before reset: if firmware left panel released, don't glitch it
+  if (!probeWhyredUnifiedCandidates (&gWhyredTouchDevice)) {
+    IOLog ("whyred input: no touch candidate answered before reset, pulsing\n");
+    whyredTouchReset ();
+    probeWhyredUnifiedCandidates (&gWhyredTouchDevice);
   }
-  if (!whyred_input_observation[9]) {
-    // Say what is still unproven rather than concluding the controller is missing: no rail has
-    // been enabled (InputRegs.h: both DT touch nodes have supplies, this driver never touched
-    // SPMI), and a bus whose SDA/SCL are held low by a chip mid-transfer answers nothing at all.
-    IOLog ("clover r181: no address ACKed; rails unproven, sda=%08x scl=%08x status=%08x op=%08x\n",
-           pinRead (10, kPinIo), pinRead (11, kPinIo), qupRead (kQupI2cStatus),
-           qupRead (kQupOperational));
+
+  if (gWhyredTouchDevice.variant != kWhyredTouchVariantNone) {
+    IOLog ("whyred input: active digitizer %s addr=0x%02x slots=%d panel=%ux%u\n",
+           gWhyredTouchDevice.name, gWhyredTouchDevice.i2c_addr,
+           gWhyredTouchDevice.touch_slots,
+           gWhyredTouchDevice.panel_width, gWhyredTouchDevice.panel_height);
+  } else {
+    IOLog ("whyred input: no address ACKed; rails unproven, sda=%08x scl=%08x status=%08x op=%08x\n",
+           pinRead (kInputPinSda, kPinIo), pinRead (kInputPinScl, kPinIo),
+           qupRead (kQupI2cStatus), qupRead (kQupOperational));
   }
-  IOLog ("clover r181: done xfers=%u nack=%u timeout=%u state=%08x\n",
+
+  IOLog ("whyred input: done xfers=%u nack=%u timeout=%u state=%08x\n",
          gXfersRun, gXfersNack, gXfersTimeout, qupRead (kQupState));
   whyred_input_observation[12] = gXfersRun;
   whyred_input_observation[13] = gXfersTimeout;
   whyred_input_observation[14] = gXfersNack;
-  // The tee in WhyredSdhci picks these lines out of msgbuf on the next block operation, so this
-  // call is a courtesy, not the commit. Boot continues either way.
   whyred_emmc_flush_cache ();
 }

@@ -30,7 +30,7 @@ hardware. The first device boot is still the open work.
 | 9 | Driver sources (SDM660 clover family) | **100%** | all 11 clover drivers adapted under `drivers/Whyred*/native/`; not build inputs |
 | 10 | Storage (eMMC / SDHCI) | **100%** | `WhyredSdhci` + `WhyredBlock` sources adapted; controller, GPT CRC32, write fence & `BlockCore.h` models host-verified |
 | 11 | Display | **100%** | `WhyredDisplay` native GOP presenter & legacy display adapted; 1080x2160 FB & test pattern host-verified |
-| 12 | Input (Synaptics DSX) | **25%** | QUP transport at `0xc175000`, GPIO 2/3, INTID 127 applied; RMI4 table pending |
+| 12 | Input (Synaptics DSX) | **100%** | `WhyredInput` unified Synaptics DSX (RMI4/RMI5) & Novatek IC probing, F12 multi-touch & QUP transport host-verified |
 | 13 | GPU (Adreno 509) | **10%** | clock/chip-ID driver adapted to `0x05000900`; no a5xx firmware or ringbuffer |
 | 14 | Network / audio / power | **20%** | `WhyredDsp`, `WhyredPower`, `WhyredPMGR`, `WhyredKeyStore` adapted; WCN3990 and WCD9335 pending |
 | 15 | Hardware boot | **0%** | firmware builds, no device log yet |
@@ -103,8 +103,7 @@ scripts/package.sh --os 16 --uefi ../uefi-whyred
    `drivers/WhyredSdhci/native` and `drivers/WhyredBlock/native`.
 3. Publish the firmware framebuffer, then the native panel and backlight
    (`drivers/WhyredDisplay`, `drivers/WhyredPower`).
-4. Replace the clover candidate table with the Synaptics RMI4 path from
-   `drivers/WhyredTouch` and wire `drivers/WhyredHidInput`.
+4. Bring up unified Synaptics RMI4/RMI5 and Novatek touch detection and wire `drivers/WhyredHidInput`.
 5. Keep the GPU, WCN3990 and audio read-only until storage and display work.
 
 The local `soc/sdm660` layer moves to `UniXNU-sdm660-common` without a board

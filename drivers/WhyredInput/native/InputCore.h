@@ -856,6 +856,220 @@ static inline int input_ft_is_m06(const uint8_t *name, uint32_t len)
 }
 
 // ---------------------------------------------------------------------------
+// whyred touch candidates: Synaptics DSX (RMI4) and Novatek (NVT)
+// ---------------------------------------------------------------------------
+
+struct InputWhyredDsxPdt {
+    uint16_t f01_query;
+    uint16_t f01_ctrl;
+    uint16_t f01_data;
+    uint16_t f12_query;
+    uint16_t f12_ctrl;
+    uint16_t f12_data;
+    uint16_t f34_ctrl;
+    int found_f01;
+    int found_f12;
+    int found_f34;
+    char product_id[11];
+};
+
+static inline void input_dsx_pdt_parse_entry(const uint8_t *entry_bytes, struct InputWhyredDsxPdt *out)
+{
+    if (!entry_bytes || !out) {
+        return;
+    }
+    const uint8_t fn = entry_bytes[5] & 0x3fu;
+    const uint16_t query = (uint16_t) entry_bytes[0];
+    const uint16_t ctrl = (uint16_t) entry_bytes[3];
+    const uint16_t data = (uint16_t) entry_bytes[4];
+
+    if (fn == kDsxFnDeviceControl) {
+        out->found_f01 = 1;
+        out->f01_query = query;
+        out->f01_ctrl = ctrl;
+        out->f01_data = data;
+    } else if (fn == kDsxFnMultiTouch) {
+        out->found_f12 = 1;
+        out->f12_query = query;
+        out->f12_ctrl = ctrl;
+        out->f12_data = data;
+    } else if (fn == kDsxFnFlash) {
+        out->found_f34 = 1;
+        out->f34_ctrl = ctrl;
+    }
+}
+
+static inline void input_dsx_extract_product_id(const uint8_t *f01_query, uint32_t len, char *out_id)
+{
+    if (!f01_query || len < (kDsxProductIdOffset + kDsxProductIdSize) || !out_id) {
+        return;
+    }
+    for (uint32_t i = 0; i < kDsxProductIdSize; i++) {
+        const uint8_t b = f01_query[kDsxProductIdOffset + i];
+        out_id[i] = (b >= 0x20 && b < 0x7f) ? (char) b : '.';
+    }
+    out_id[kDsxProductIdSize] = '\0';
+}
+
+static inline int input_dsx_touch_map_coords(uint32_t raw_x, uint32_t raw_y,
+                                             uint32_t max_raw_x, uint32_t max_raw_y,
+                                             uint32_t *panel_x, uint32_t *panel_y)
+{
+    if (!panel_x || !panel_y || max_raw_x == 0 || max_raw_y == 0) {
+        return 0;
+    }
+    if (raw_x > max_raw_x) raw_x = max_raw_x;
+    if (raw_y > max_raw_y) raw_y = max_raw_y;
+
+    *panel_x = (uint32_t) (((uint64_t) raw_x * 1080ULL) / max_raw_x);
+    *panel_y = (uint32_t) (((uint64_t) raw_y * 2160ULL) / max_raw_y);
+    return 1;
+}
+
+struct InputDsxContact {
+    uint8_t id;
+    uint8_t status;
+    uint16_t x;
+    uint16_t y;
+    uint8_t wx;
+    uint8_t wy;
+};
+
+struct InputDsxReport {
+    uint32_t num_contacts;
+    struct InputDsxContact contacts[kDsxF12MaxFingers];
+};
+
+static inline int input_dsx_parse_f12_report(const uint8_t *data, uint32_t len,
+                                             uint32_t max_raw_x, uint32_t max_raw_y,
+                                             struct InputDsxReport *out)
+{
+    if (!data || !out || len < 6) {
+        return 0;
+    }
+    memset(out, 0, sizeof(*out));
+    const uint8_t presence = data[0];
+    uint32_t count = 0;
+    for (uint32_t i = 0; i < kDsxF12MaxFingers && (1 + (i + 1) * 5) <= len; i++) {
+        uint8_t st = (presence >> (i * 2)) & 0x03;
+        if (st == 0 && (presence & (1u << i))) {
+            st = 1;
+        }
+        if (st != 0) {
+            const uint8_t *slot = &data[1 + i * 5];
+            uint16_t rx = (uint16_t) (slot[0] | ((uint16_t) slot[1] << 8));
+            uint16_t ry = (uint16_t) (slot[2] | ((uint16_t) slot[3] << 8));
+            uint32_t px = 0, py = 0;
+            input_dsx_touch_map_coords(rx, ry, max_raw_x, max_raw_y, &px, &py);
+            out->contacts[count].id = (uint8_t) i;
+            out->contacts[count].status = st;
+            out->contacts[count].x = (uint16_t) px;
+            out->contacts[count].y = (uint16_t) py;
+            out->contacts[count].wx = slot[4];
+            out->contacts[count].wy = slot[4];
+            count++;
+        }
+    }
+    out->num_contacts = count;
+    return 1;
+}
+
+struct InputWhyredNvtId {
+    uint8_t chip_id[3];
+    int is_bootloader;
+    int is_normal;
+};
+
+static inline int input_nvt_is_valid_chip_id(const uint8_t *chip_id)
+{
+    if (!chip_id) {
+        return 0;
+    }
+    /* Floating bus 0xFF or all zeroes are invalid */
+    if (chip_id[0] == 0xff && chip_id[1] == 0xff) {
+        return 0;
+    }
+    if (chip_id[0] == 0x00 && chip_id[1] == 0x00) {
+        return 0;
+    }
+    return 1;
+}
+
+static inline int input_is_whyred_candidate_addr(uint8_t addr)
+{
+    return (addr == kTouchAddrSynaptics ||
+            addr == kTouchAddrNovatekBoot ||
+            addr == kTouchAddrNovatekNormal);
+}
+
+struct InputWhyredUnifiedDevice {
+    enum WhyredTouchVariant variant;
+    uint8_t i2c_addr;
+    char name[32];
+    char product_id[16];
+    uint16_t f12_data_base;
+    uint16_t f01_query_base;
+    uint8_t nvt_chip_id[3];
+    int touch_slots;
+    uint32_t panel_width;
+    uint32_t panel_height;
+};
+
+static inline void input_whyred_init_unified_device(struct InputWhyredUnifiedDevice *dev)
+{
+    if (!dev) return;
+    memset(dev, 0, sizeof(*dev));
+    dev->variant = kWhyredTouchVariantNone;
+    dev->touch_slots = (int) kDsxF12MaxFingers;
+    dev->panel_width = kDsxPanelWidth;
+    dev->panel_height = kDsxPanelHeight;
+    strncpy(dev->name, "Unknown Touch IC", sizeof(dev->name) - 1);
+}
+
+static inline void input_whyred_setup_synaptics(struct InputWhyredUnifiedDevice *dev,
+                                                const struct InputWhyredDsxPdt *pdt)
+{
+    if (!dev) return;
+    dev->variant = kWhyredTouchVariantSynaptics;
+    dev->i2c_addr = kTouchAddrSynaptics;
+    strncpy(dev->name, "Synaptics DSX (RMI4/RMI5)", sizeof(dev->name) - 1);
+    dev->touch_slots = 10;
+    dev->panel_width = 1080;
+    dev->panel_height = 2160;
+    if (pdt) {
+        dev->f12_data_base = pdt->f12_data ? pdt->f12_data : kDsxF12DataBase;
+        dev->f01_query_base = pdt->f01_query;
+        strncpy(dev->product_id, pdt->product_id[0] ? pdt->product_id : "TD4310", sizeof(dev->product_id) - 1);
+    }
+}
+
+static inline void input_whyred_setup_novatek(struct InputWhyredUnifiedDevice *dev,
+                                              uint8_t addr,
+                                              const uint8_t *chip_id)
+{
+    if (!dev) return;
+    dev->i2c_addr = addr;
+    dev->variant = (addr == kTouchAddrNovatekBoot) ?
+        kWhyredTouchVariantNovatekBoot : kWhyredTouchVariantNovatekNormal;
+    dev->touch_slots = 10;
+    dev->panel_width = 1080;
+    dev->panel_height = 2160;
+    if (chip_id) {
+        dev->nvt_chip_id[0] = chip_id[0];
+        dev->nvt_chip_id[1] = chip_id[1];
+        dev->nvt_chip_id[2] = chip_id[2];
+        snprintf(dev->product_id, sizeof(dev->product_id), "NT%02x%02x", chip_id[0], chip_id[1]);
+    } else {
+        strncpy(dev->product_id, "NT36672", sizeof(dev->product_id) - 1);
+    }
+    if (dev->variant == kWhyredTouchVariantNovatekBoot) {
+        strncpy(dev->name, "Novatek NT36672 (Bootloader)", sizeof(dev->name) - 1);
+    } else {
+        strncpy(dev->name, "Novatek NT36672 (Runtime)", sizeof(dev->name) - 1);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Time
 // ---------------------------------------------------------------------------
 

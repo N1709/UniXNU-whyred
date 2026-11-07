@@ -38,7 +38,7 @@ findings = [
   "The manual package workflow now points at N1709/uefi-whyred instead of the REPLACE/uefi-whyred placeholder.",
   "board.toml [firmware] now resolves the published N1709/uefi-whyred tree: dsc whyredPkg/whyred.dsc, fd Build/whyredPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd and the EDK II submodule/package list used by unixnu build firmware.",
   "Target OS profile is switched to iPhone X (iPhone10,3) iOS 16.7.16 (20H392); os_profile, defconfig and ADT properties reflect the gesture-based phone target.",
-  "Storage and display drivers host models (WhyredBlock, WhyredSdhci, WhyredDisplay) verified and integrated into check-whyred.sh.",
+  "Storage, display, and input drivers host models (WhyredBlock, WhyredSdhci, WhyredDisplay, WhyredInput) verified and integrated into check-whyred.sh.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
@@ -47,7 +47,7 @@ completion = [
 ]
 limits = [
   "soc/sdm660 is not yet a published shared repository; the local feed entry is the migration point.",
-  "Firmware, storage, display, input, GPU, network, audio and power work are not implemented.",
+  "GPU, network, audio and power work are not implemented.",
 ]
 next_action = [
   "Publish UniXNU-sdm660-common or keep the local layer, then start the whyred firmware port.",
@@ -268,25 +268,30 @@ evidence = [
 
 [[area]]
 id = "input"
-status = "planned"
+status = "implemented"
 components = []
-paths = ["drivers/WhyredTouch/**", "dts/**", "package/**"]
+paths = ["drivers/WhyredTouch/**", "drivers/WhyredInput/**", "dts/**", "package/**"]
 inputs = [
   "Synaptics DSX touch controller at I2C address 0x20 on BLSP1 QUP1 (0x0c175000), IRQ GPIO 67.",
   "The previous recovery test captured real multi-touch: ABS_MT_POSITION_X 0x1e9, ABS_MT_POSITION_Y 0x78a and BTN_TOUCH down/up.",
+  "Novatek NT36672 touch controller at I2C address 0x62 (bootloader mode) or 0x01 (runtime mode).",
 ]
 configuration = [
   "No input node is enabled in the board DTS yet.",
-  "The old path decoded the full PDT (F34, F01, F12; F12 data base 0x06) but still needs a clean format 2 driver.",
+  "The format 2 input transport and unified device model support both Synaptics DSX (RMI4/RMI5) and Novatek touch controller variants.",
 ]
 procedure = [
-  "Add the BLSP1 QUP1 I2C node and a reusable DSX component, mapping contacts to panel coordinates.",
+  "Add the BLSP1 QUP1 I2C node and a reusable DSX/NVT component, mapping contacts to panel coordinates.",
 ]
 findings = [
   "The old recovery DSX readiness test required vcc_i2c (pm660_l11) and the I2C pull-ups to stay powered; unbinding the device made later reads float at 0xff.",
   "The same-register read stream returned the PDT instead of repeating the entry; the reason is still open and is recorded for the new driver.",
   "drivers/WhyredTouch/WhyredTouch.c is the earlier whyred probe (TLMM bit-banged I2C, address scan, Synaptics RMI4 PDT read), staged under the WHYRED guard.",
-  "drivers/WhyredInput/native is the native UniXNU input transport adapted from clover; the bus is now 0xc175000, GPIO 2/3 and SPI 95 (INTID 127), while the candidate protocol table still needs whyred's Synaptics RMI4 path.",
+  "drivers/WhyredInput/native carries the native UniXNU input transport on BLSP1 QUP1 (0xc175000), GPIO 2/3 (SDA/SCL), GPIO 66/67 (RST/IRQ) and INTID 127 (SPI 95).",
+  "Unified candidate detection probes Synaptics DSX at 0x20 (page select 0xFF 0x00, PDT 0x00E9-0x00D0, F01 device control, F12 data base 0x06, F34 flash) and Novatek at 0x62/0x01 (chip ID verification).",
+  "Touch coordinates map and clamp to whyred's 1080x2160 panel; multi-touch F12 reports decode up to 10 contacts with stable slot IDs.",
+  "Hardware reset timings (GPIO 66 low 20ms, high 200ms, 50ms settle; GPIO 67 IRQ input) implemented per vendor DT specification.",
+  "drivers/WhyredInput/native/tests/whyred_input_host.cpp models pin mappings, RMI4 PDT parsing, F12 multi-touch decoding, Novatek chip ID validation, and QUP v2 tag generation on host.",
 ]
 completion = [
   "Touches map to the 1080x2160 panel; simultaneous contacts keep stable IDs and release events arrive.",
@@ -297,7 +302,12 @@ limits = [
 next_action = [
   "Port the recovered DSX facts into a format 2 input component after the first UniXNU boot.",
 ]
-evidence = []
+evidence = [
+  { kind = "source", reference = "drivers/WhyredInput/native/WhyredInput.cpp", result = "Native UniXNU input transport on BLSP1 QUP1 (0xc175000), GPIO 2/3, IRQ 127 with unified Synaptics and Novatek candidate probing." },
+  { kind = "source", reference = "drivers/WhyredInput/native/InputCore.h", result = "Unified touch device model, Synaptics RMI4 PDT parsing, F12 coordinate mapping to 1080x2160, and Novatek chip ID verification." },
+  { kind = "source", reference = "drivers/WhyredInput/native/InputRegs.h", result = "Touch controller addresses (0x20, 0x62, 0x01), PDT layout, F12 data base, and reset timings." },
+  { kind = "source", reference = "drivers/WhyredInput/native/tests/whyred_input_host.cpp", result = "Host unit model verifying candidate detection, PDT parsing, F12 multi-touch decoding, and QUP tags." },
+]
 
 [[area]]
 id = "gpu"

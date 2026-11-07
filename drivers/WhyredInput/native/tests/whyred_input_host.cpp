@@ -777,6 +777,162 @@ static void check_time(void)
     }
 }
 
+static void check_whyred_touch_variants(void)
+{
+    /* 1. Candidate addresses */
+    CHECK(input_is_whyred_candidate_addr(0x20), "0x20 is whyred Synaptics candidate");
+    CHECK(input_is_whyred_candidate_addr(0x62), "0x62 is whyred Novatek bootloader candidate");
+    CHECK(input_is_whyred_candidate_addr(0x01), "0x01 is whyred Novatek runtime candidate");
+    CHECK(!input_is_whyred_candidate_addr(0x5d), "0x5d is not a whyred candidate");
+    CHECK(!input_is_whyred_candidate_addr(0x38), "0x38 is not a whyred candidate");
+
+    /* 2. Synaptics DSX (RMI4) PDT Parsing */
+    struct InputWhyredDsxPdt pdt;
+    memset(&pdt, 0, sizeof(pdt));
+
+    /* Simulate F01 entry: query base 0x00, ctrl 0x01, data 0x02, fn 0x01 */
+    const uint8_t f01_entry[6] = { 0x00, 0x00, 0x00, 0x01, 0x02, 0x01 };
+    input_dsx_pdt_parse_entry(f01_entry, &pdt);
+    CHECK_EQ(pdt.found_f01, 1, "F01 detected");
+    CHECK_EQ(pdt.f01_ctrl, 1u, "F01 ctrl base");
+    CHECK_EQ(pdt.f01_data, 2u, "F01 data base");
+
+    /* Simulate F12 entry: query base 0x04, ctrl 0x05, data 0x06, fn 0x12 */
+    const uint8_t f12_entry[6] = { 0x04, 0x00, 0x00, 0x05, 0x06, 0x12 };
+    input_dsx_pdt_parse_entry(f12_entry, &pdt);
+    CHECK_EQ(pdt.found_f12, 1, "F12 detected");
+    CHECK_EQ(pdt.f12_data, 6u, "F12 data base matches 0x06 from whyred recovery test");
+
+    /* Simulate F34 entry: fn 0x34 */
+    const uint8_t f34_entry[6] = { 0x00, 0x00, 0x00, 0x08, 0x00, 0x34 };
+    input_dsx_pdt_parse_entry(f34_entry, &pdt);
+    CHECK_EQ(pdt.found_f34, 1, "F34 flash detected");
+
+    /* Product ID extraction from F01 query block (offset 11, length 10) */
+    uint8_t f01_query[21];
+    memset(f01_query, 0, sizeof(f01_query));
+    memcpy(f01_query + 11, "TD4310_001", 10);
+    char prod[11];
+    input_dsx_extract_product_id(f01_query, sizeof(f01_query), prod);
+    CHECK(strcmp(prod, "TD4310_001") == 0, "product id extracted as TD4310_001");
+
+    /* Touch coordinate scaling & clamping for 1080x2160 panel */
+    uint32_t px = 0, py = 0;
+    CHECK(input_dsx_touch_map_coords(2048, 2048, 4096, 4096, &px, &py), "touch coord mapping succeeds");
+    CHECK_EQ(px, 540u, "midpoint X maps to 540 for 1080 panel");
+    CHECK_EQ(py, 1080u, "midpoint Y maps to 1080 for 2160 panel");
+
+    CHECK(input_dsx_touch_map_coords(5000, 5000, 4096, 4096, &px, &py), "out-of-bounds coordinates clamp");
+    CHECK_EQ(px, 1080u, "clamped X is 1080");
+    CHECK_EQ(py, 2160u, "clamped Y is 2160");
+
+    /* 3. Novatek (NVT) Chip ID verification */
+    uint8_t valid_nvt[2] = { 0x36, 0x72 }; /* NT36672 */
+    uint8_t float_nvt[2] = { 0xff, 0xff };
+    uint8_t zero_nvt[2] = { 0x00, 0x00 };
+
+    CHECK(input_nvt_is_valid_chip_id(valid_nvt), "NT36672 chip ID is valid");
+    CHECK(!input_nvt_is_valid_chip_id(float_nvt), "floating bus 0xFF is rejected");
+    CHECK(!input_nvt_is_valid_chip_id(zero_nvt), "zero chip ID is rejected");
+
+    /* 4. Synaptics F12 Multi-touch Packet Decoding */
+    /* Simulate F12 2D touch report from recovery:
+     * Byte 0: presence bitmask 0x01 (finger 0 present)
+     * Bytes 1-5: Slot 0 (X=0x0165, Y=0x06a0, W=4) */
+    uint8_t f12_sample[6];
+    f12_sample[0] = 0x01; // Finger 0 active
+    f12_sample[1] = 0x65; // X low
+    f12_sample[2] = 0x01; // X high (0x0165 = 357)
+    f12_sample[3] = 0xa0; // Y low
+    f12_sample[4] = 0x06; // Y high (0x06a0 = 1696)
+    f12_sample[5] = 0x04; // Touch major (wx)
+
+    struct InputDsxReport rpt;
+    CHECK(input_dsx_parse_f12_report(f12_sample, sizeof(f12_sample), 1080, 2160, &rpt),
+          "f12 report decodes successfully");
+    CHECK_EQ(rpt.num_contacts, 1u, "1 active contact detected");
+    CHECK_EQ(rpt.contacts[0].id, 0u, "contact is slot 0");
+    CHECK_EQ(rpt.contacts[0].status, 1u, "contact status active");
+    CHECK_EQ(rpt.contacts[0].x, 357u, "decoded X is 357");
+    CHECK_EQ(rpt.contacts[0].y, 1696u, "decoded Y is 1696");
+    CHECK_EQ(rpt.contacts[0].wx, 4u, "touch major is 4");
+
+    /* Multi-finger simulation: Slot 0 and Slot 1 active */
+    uint8_t f12_multi[11];
+    f12_multi[0] = 0x05; // 0101b -> Slot 0 and Slot 1 active
+    // Slot 0 at (100, 200)
+    f12_multi[1] = 100; f12_multi[2] = 0;
+    f12_multi[3] = 200; f12_multi[4] = 0;
+    f12_multi[5] = 5;
+    // Slot 1 at (500, 1000)
+    f12_multi[6] = (uint8_t)(500 & 0xff); f12_multi[7] = (uint8_t)(500 >> 8);
+    f12_multi[8] = (uint8_t)(1000 & 0xff); f12_multi[9] = (uint8_t)(1000 >> 8);
+    f12_multi[10] = 8;
+
+    CHECK(input_dsx_parse_f12_report(f12_multi, sizeof(f12_multi), 1080, 2160, &rpt),
+          "multi-finger f12 report decodes");
+    CHECK_EQ(rpt.num_contacts, 2u, "2 active contacts decoded");
+    CHECK_EQ(rpt.contacts[0].x, 100u, "finger 0 X");
+    CHECK_EQ(rpt.contacts[0].y, 200u, "finger 0 Y");
+    CHECK_EQ(rpt.contacts[1].x, 500u, "finger 1 X");
+    CHECK_EQ(rpt.contacts[1].y, 1000u, "finger 1 Y");
+    CHECK_EQ(rpt.contacts[1].wx, 8u, "finger 1 wx");
+
+    /* 5. Unified Device Model: Synaptics and Novatek */
+    struct InputWhyredUnifiedDevice dev;
+    input_whyred_init_unified_device(&dev);
+    CHECK_EQ((int)dev.variant, (int)kWhyredTouchVariantNone, "initial variant is none");
+    CHECK_EQ(dev.panel_width, 1080u, "default width 1080");
+    CHECK_EQ(dev.panel_height, 2160u, "default height 2160");
+    CHECK_EQ(dev.touch_slots, 10, "default 10 slots");
+
+    /* Synaptics DSX setup */
+    input_whyred_setup_synaptics(&dev, &pdt);
+    CHECK_EQ((int)dev.variant, (int)kWhyredTouchVariantSynaptics, "synaptics variant configured");
+    CHECK_EQ(dev.i2c_addr, 0x20u, "synaptics I2C address is 0x20");
+    CHECK(strstr(dev.name, "Synaptics") != NULL, "device name reflects Synaptics");
+    CHECK_EQ(dev.f12_data_base, 6u, "f12 data base configured");
+
+    /* Novatek Bootloader setup */
+    input_whyred_setup_novatek(&dev, kTouchAddrNovatekBoot, valid_nvt);
+    CHECK_EQ((int)dev.variant, (int)kWhyredTouchVariantNovatekBoot, "nvt bootloader variant");
+    CHECK_EQ(dev.i2c_addr, 0x62u, "nvt bootloader addr 0x62");
+    CHECK(strstr(dev.name, "Bootloader") != NULL, "name reflects Bootloader");
+
+    /* Novatek Runtime setup */
+    input_whyred_setup_novatek(&dev, kTouchAddrNovatekNormal, valid_nvt);
+    CHECK_EQ((int)dev.variant, (int)kWhyredTouchVariantNovatekNormal, "nvt runtime variant");
+    CHECK_EQ(dev.i2c_addr, 0x01u, "nvt runtime addr 0x01");
+    CHECK(strstr(dev.name, "Runtime") != NULL, "name reflects Runtime");
+
+    /* 6. Hardware Reset Timings */
+    CHECK_EQ(kWhyredResetActiveMs, 20u, "reset active is 20 ms per DT");
+    CHECK_EQ(kWhyredResetDelayMs, 200u, "reset delay is 200 ms per DT");
+    CHECK_EQ(kWhyredResetSettleMs, 50u, "reset settle is 50 ms");
+
+    /* 7. QUP v2 I2C Tag Framing for Synaptics DSX and Novatek */
+    uint8_t tags[8];
+    /* Page select write for Synaptics 0x20 */
+    CHECK_EQ(input_write_tags(kTouchAddrSynaptics, 2u, 1, tags, sizeof(tags)), kQupMaxTagsLen,
+             "synaptics page write generates 4 tags");
+    CHECK_EQ(tags[0], kQupTagV2Start, "tag START");
+    CHECK_EQ(tags[1], 0x40u, "0x20 shifted write addr is 0x40");
+    CHECK_EQ(tags[2], kQupTagV2DataWrStop, "write with STOP");
+    CHECK_EQ(tags[3], 2u, "2 data bytes (0xFF <page>)");
+
+    /* PDT register read (1 byte write without stop, followed by 6 bytes read with stop) */
+    CHECK_EQ(input_write_tags(kTouchAddrSynaptics, 1u, 0, tags, sizeof(tags)), kQupMaxTagsLen,
+             "pdt reg write generates tags");
+    CHECK_EQ(tags[2], kQupTagV2DataWr, "repeated start write tag (no STOP)");
+    CHECK_EQ(tags[3], 1u, "1 register address byte");
+
+    CHECK_EQ(input_read_tags(kTouchAddrSynaptics, 6u, tags, sizeof(tags)), kQupMaxTagsLen,
+             "pdt data read generates tags");
+    CHECK_EQ(tags[1], 0x41u, "0x20 shifted read addr is 0x41");
+    CHECK_EQ(tags[2], kQupTagV2DataRdStop, "read with STOP");
+    CHECK_EQ(tags[3], 6u, "6 bytes PDT entry read");
+}
+
 int main(void)
 {
     check_pin_map();
@@ -794,6 +950,7 @@ int main(void)
     check_request_bounds();
     check_identification();
     check_time();
+    check_whyred_touch_variants();
 
     if (g_failures) {
         printf("FAIL: %d of %d checks in whyred_input_host.cpp\n", g_failures, g_checks);
