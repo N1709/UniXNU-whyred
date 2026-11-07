@@ -15,7 +15,7 @@ not carry the UniXNU core checkout.
 ## Status
 
 `100%` means the item is complete in this repository, not that it boots on
-hardware. Drivers and the first device boot are the open work.
+hardware. The first device boot is still the open work.
 
 | # | Step | State | Evidence |
 | --- | --- | --- | --- |
@@ -27,12 +27,13 @@ hardware. Drivers and the first device boot are the open work.
 | 6 | Packaging inputs and defconfig | **100%** | `configs/whyred_defconfig`, `[package]`, `[payload]`, `[payload.adt]` |
 | 7 | Porting record | **100%** | `porting.toml`, 13 areas, `porting-record.py check`, `scripts/check-whyred.sh` |
 | 8 | Firmware (Mu-Silicium UEFI) | **100%** | `N1709/uefi-whyred`; DEBUG FD `0x300000` bytes builds; not booted on hardware |
-| 9 | Storage (eMMC / SDHCI) | **0%** | controller documented; staged XNU source and native clover reference |
-| 10 | Display | **0%** | splash reserved; native clover GOP reference imported |
-| 11 | Input (Synaptics DSX) | **0%** | I2C/IRQ documented; staged XNU probe and native clover reference |
-| 12 | GPU (Adreno 509) | **0%** | no Adreno 5xx driver |
-| 13 | Network / audio / power | **0%** | hardware documented; native clover power reference imported |
-| 14 | Hardware boot | **0%** | firmware builds, no device log yet |
+| 9 | Driver sources (SDM660 clover family) | **100%** | all 11 clover drivers adapted under `drivers/Whyred*/native/`; not build inputs |
+| 10 | Storage (eMMC / SDHCI) | **25%** | `WhyredSdhci` + `WhyredBlock` sources adapted, userdata window applied; no hardware read |
+| 11 | Display | **15%** | native GOP presenter imported; DSI/MDP panel and backlight pending |
+| 12 | Input (Synaptics DSX) | **25%** | QUP transport at `0xc175000`, GPIO 2/3, INTID 127 applied; RMI4 table pending |
+| 13 | GPU (Adreno 509) | **10%** | clock/chip-ID driver adapted to `0x05000900`; no a5xx firmware or ringbuffer |
+| 14 | Network / audio / power | **20%** | `WhyredDsp`, `WhyredPower`, `WhyredPMGR`, `WhyredKeyStore` adapted; WCN3990 and WCD9335 pending |
+| 15 | Hardware boot | **0%** | firmware builds, no device log yet |
 
 ## Hardware
 
@@ -96,15 +97,15 @@ scripts/package.sh --os 17 --uefi ../uefi-whyred
 
 ## Open work
 
-1. Port Mu-Silicium UEFI to whyred using `HANDOFF.md`; fill `[firmware]` and
-   `proprietary-files.txt`.
-2. Bring up the eMMC/SDHCI block device and the `userdata` GPT windows
-   (`drivers/WhyredSdhci`, `drivers/WhyredBlock`).
+1. Run the full `unixnu build` and the first `fastboot boot`; capture the
+   UART2 log at `0x0c170000`, 115200 8n1.
+2. Bring up the eMMC/SDHCI block device and the `userdata` GPT windows from
+   `drivers/WhyredSdhci/native` and `drivers/WhyredBlock/native`.
 3. Publish the firmware framebuffer, then the native panel and backlight
    (`drivers/WhyredDisplay`, `drivers/WhyredPower`).
-4. Port the recovered Synaptics DSX facts into a format 2 input driver
-   (`drivers/WhyredTouch`).
-5. Keep the GPU, WCN3990 and audio out of the first boot.
+4. Replace the clover candidate table with the Synaptics RMI4 path from
+   `drivers/WhyredTouch` and wire `drivers/WhyredHidInput`.
+5. Keep the GPU, WCN3990 and audio read-only until storage and display work.
 
 The local `soc/sdm660` layer moves to `UniXNU-sdm660-common` without a board
 change beyond `feeds.toml` and its pin.
