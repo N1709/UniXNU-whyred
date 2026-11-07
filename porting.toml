@@ -36,6 +36,7 @@ findings = [
   "The shared directory is a local SoC feed, not a copied core checkout: moving it later changes only feeds.toml and the pin.",
   "Every change under .github/** belongs to this area, so a workflow edit must add a finding or evidence entry here; the porting-record check rejects a workflow-only commit.",
   "The manual package workflow now points at N1709/uefi-whyred instead of the REPLACE/uefi-whyred placeholder.",
+  "board.toml [firmware] now resolves the published N1709/uefi-whyred tree: dsc whyredPkg/whyred.dsc, fd Build/whyredPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd and the EDK II submodule/package list used by unixnu build firmware.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ipados-17.7.11-21H461 and device whyred with no missing source.",

@@ -36,15 +36,16 @@ source = "device:dts/whyred.dts"
 include_dirs = ["soc:dts"]
 
 [firmware]
-# Pending: no Mu-Silicium / UEFI port exists for whyred yet. The configuration
-# name is fixed here; dsc, fd, packages and preflight scripts are added when the
-# firmware repository is published. Nothing is flashed by this repository's
-# boot path: the device is booted with "fastboot boot" only.
+# Firmware checkout: N1709/uefi-whyred, a UniXNU/uefi-sheng fork. The first
+# build is vendor-free: GOP over the ABL framebuffer, FDT memory expansion,
+# UniXNU RamDisk/DarwinBoot and no Binaries/<device> DXE. Nothing is flashed
+# by this repository's boot path: the device is booted with "fastboot boot"
+# only.
 config = "whyred"
-# dsc = "Platforms/Xiaomi/whyredPkg/whyred.dsc"
-# fd = "Build/whyredPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd"
-# preflight = ["scripts/download-whyred-firmware.py", "scripts/extract-whyred-firmware.py --delete-archive", "scripts/check-whyred.py"]
-# packages = ["{uefi}", "{uefi}/Platforms/Xiaomi", "{tree}/package", "{tree}/drivers/DarwinBoot", "{edk2}", "{uefi}/Common/Mu", "{uefi}/Common/Mu_OEM_Sample", "{uefi}/Silicon/Qualcomm", "{uefi}/Silicon/Silicium", "{uefi}/Silicium-ACPI", "{uefi}/Silicium-ACPI/Platforms/Xiaomi", "{uefi}/Silicium-ACPI/Silicon/Qualcomm"]
+dsc = "Platforms/Xiaomi/whyredPkg/whyred.dsc"
+fd = "Build/whyredPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd"
+submodules = ["Common/Mu", "Common/Mu_OEM_Sample", "Silicium-ACPI", "Silicon/Silicium/OpensslPkg/Library/OpensslLib/openssl"]
+packages = ["{uefi}", "{uefi}/Platforms/Xiaomi", "{tree}/package", "{tree}/drivers/DarwinBoot", "{edk2}", "{uefi}/Common/Mu", "{uefi}/Common/Mu_OEM_Sample", "{uefi}/Silicon/Qualcomm", "{uefi}/Silicon/Silicium", "{uefi}/Silicium-ACPI", "{uefi}/Silicium-ACPI/Platforms/Xiaomi", "{uefi}/Silicium-ACPI/Silicon/Qualcomm"]
 
 [payload]
 volume = "WHYREDESP"
