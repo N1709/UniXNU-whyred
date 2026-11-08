@@ -74,7 +74,9 @@ scripts/check-whyred.sh
 
 `scripts/check-whyred.sh` runs the same checks offline against the committed
 pins: `dtc`, `make-adt.py`, `defconfig`, `status`, `tree` and the porting
-record. Set `CHECK_FETCH=1` to include `unixnu fetch`.
+record. It first installs the vendored `profiles/os/ios-16.7.16-20H392` into
+the UniXNU checkout, because that profile is not in the UniXNU repository. Set
+`CHECK_FETCH=1` to include `unixnu fetch`.
 
 Compile the hardware tree and generate an ADT without the full build:
 
@@ -88,12 +90,16 @@ python3 scripts/make-adt.py --dtb /tmp/whyred.dtb \
     --output /tmp/whyred.adt
 ```
 
-Packaging becomes available after a whyred firmware checkout exists:
+Packaging uses the published `N1709/uefi-whyred` checkout:
 
 ```sh
-scripts/package.sh --check --os 16
-scripts/package.sh --os 16 --uefi ../uefi-whyred
+scripts/package.sh --check --os ios-16.7.16-20H392
+scripts/package.sh --os ios-16.7.16-20H392 --uefi ../uefi-whyred
 ```
+
+The full profile name is required: `--os 16` only resolves the `ipados-` major
+versions. The manual `package` workflow runs the same two commands with the
+firmware checkout beside the device repository and publishes `Mu-whyred.img`.
 
 ## Open work
 

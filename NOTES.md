@@ -83,7 +83,7 @@ results.
 ## Packaging
 
 `./unixnu build` (or `unixnu release`) produces one image,
-`out/whyred/ipados-17.7.11-21H461/whyred/boot/boot.img`:
+`out/whyred/ios-16.7.16-20H392/whyred/boot/boot.img`:
 
 - kernel field: `BootShim` + `SILICIUM_UEFI.fd` + `dts/whyred.dtb`;
 - ramdisk field: `payload/payload.img` (XNU kernel, ADT, config).
@@ -93,6 +93,16 @@ the boot image see the same tree. The GitHub workflow copies that one file to
 `Mu-whyred.img` and uploads it; it does not split the outputs.
 
 Boot it with `fastboot boot Mu-whyred.img`. Nothing is flashed.
+
+The iPhone X iOS 16.7.16 profile is vendored at
+`profiles/os/ios-16.7.16-20H392`; `scripts/check-whyred.sh` and the package
+workflow copy it into `UniXNU/profiles/os/` before resolving the board. Its
+pins come from the iPhone10,3 restore image: chip `0x8015`, board `0x06`
+(`d22ap`), kernelcache sha256
+`2ec297bac95bcba01046fd0148e97e7e5885c05a6c18827f39f534ba375c1221`, prelink
+slide `-0x1000000`, prelinked roots all present in the 20H392 kernelcache.
+`early_security_init` is left out because XNU 8796 has no native security-init
+patch; that mechanism exists only for XNU 10063 and 12377.
 
 ## Next
 

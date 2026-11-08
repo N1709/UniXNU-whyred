@@ -16,8 +16,8 @@ on:
       os:
         description: "OS profile of the images"
         type: choice
-        options: ["16", "17"]
-        default: "16"
+        options: ["ios-16.7.16-20H392", "ipados-17.7.11-21H461"]
+        default: "ios-16.7.16-20H392"
 
 permissions:
   contents: read
@@ -39,7 +39,10 @@ jobs:
         with:
           repository: UniXNU/UniXNU
           path: UniXNU
-          submodules: recursive
+          # The deps step initializes the module submodules it needs. A
+          # recursive checkout here repeats that work and fails the whole run
+          # before any build step when one submodule is unreachable.
+          submodules: false
       - uses: actions/checkout@v4
         with:
           repository: N1709/uefi-whyred   # this board's firmware checkout
@@ -47,9 +50,15 @@ jobs:
           # Only [firmware] submodules are needed; the driver initializes them
           # one by one. A recursive checkout also pulls Mu_Basecore's optional
           # SPDM/unit-test trees, which are slow and not part of the build.
+      - name: OS profile
+        # The iOS 16 profile lives in this repository, not in UniXNU; install
+        # it before defconfig and release resolve [board] os_profile.
+        run: |
+          mkdir -p UniXNU/profiles/os
+          cp -a device/profiles/os/. UniXNU/profiles/os/
       - name: tools
         run: |
-          brew install dtc llvm lld cmake mtools blacktop/tap/ipsw
+          brew install dtc llvm lld cmake mtools unifdef tcsh blacktop/tap/ipsw
           ok=1
           for t in clang xcodebuild make git ninja cmake dtc fdtget fdtput aea compression_tool \
                    mformat mcopy ipsw; do

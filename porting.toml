@@ -10,7 +10,7 @@ summary = "Xiaomi Redmi Note 5 (whyred), SDM636 / Kryo 260 / ARMv8.0. Format 2 d
 id = "configuration"
 status = "implemented"
 components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot"]
-paths = ["board.toml", "feeds.toml", "soc/**", "configs/**", "dts/**", "drivers/README.md", ".github/**", ".gitignore", "local.toml.example"]
+paths = ["board.toml", "feeds.toml", "soc/**", "configs/**", "dts/**", "drivers/README.md", "profiles/**", ".github/**", ".gitignore", "local.toml.example"]
 inputs = [
   "Xiaomi whyred (SDM636) with 8 Kryo 260 cores: 4x Cortex-A73 MPIDR 0x100-0x103 and 4x Cortex-A53 MPIDR 0x0-0x3; qcom,msm-id = <345 0x0>.",
   "Unmodified iPhone X (iPhone10,3) / iOS 16.7.16 / 20H392 image with 4 KiB pages; Kryo 260 is ARMv8.0 without pointer authentication, so the arm64 profile is used.",
@@ -39,6 +39,8 @@ findings = [
   "board.toml [firmware] now resolves the published N1709/uefi-whyred tree: dsc whyredPkg/whyred.dsc, fd Build/whyredPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd and the EDK II submodule/package list used by unixnu build firmware.",
   "Target OS profile is switched to iPhone X (iPhone10,3) iOS 16.7.16 (20H392); os_profile, defconfig and ADT properties reflect the gesture-based phone target.",
   "Storage, display, input, and GPU drivers host models (WhyredBlock, WhyredSdhci, WhyredDisplay, WhyredInput, WhyredGpu) verified and integrated into check-whyred.sh.",
+  "The iPhone X iOS 16.7.16 profile is vendored at profiles/os/ios-16.7.16-20H392; a fresh UniXNU checkout has no iOS 16 profile, so scripts/check-whyred.sh and the package workflow install this directory into UniXNU/profiles/os/ before resolving [board] os_profile.",
+  "The package workflow selects the full profile name (ios-16.7.16-20H392) instead of the major version, checks out UniXNU without recursive submodules (the deps step initializes them) and copies the vendored profile before packaging.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
@@ -60,6 +62,7 @@ evidence = [
   { kind = "source", reference = "configs/whyred_defconfig", result = "Board defconfig with CONFIG_XNU_NATIVE_PAN=n and the eMMC/no-GPU switch set." },
   { kind = "source", reference = ".github/workflows/porting-record.yml", result = "Reusable UniXNU porting-record check on every push and pull request." },
   { kind = "source", reference = ".github/workflows/package.yml", result = "Manual macOS packaging workflow using N1709/uefi-whyred and the UNIXNU_UNIQUE_CHIP_ID seed." },
+  { kind = "source", reference = "profiles/os/ios-16.7.16-20H392/profile.toml", result = "Vendored iPhone X iOS 16.7.16 profile: IPSW pins, prelink roots and identity properties installed into the UniXNU checkout." },
 ]
 
 [[area]]
@@ -68,39 +71,40 @@ status = "planned"
 components = ["DarwinBoot"]
 paths = ["proprietary-files.txt", "scripts/**"]
 inputs = [
-  "No Mu-Silicium / UEFI port exists for whyred yet. The boot path must stay \"fastboot boot\" only: never flash boot, modem, persist or recovery, and never format userdata.",
+  "The firmware checkout is N1709/uefi-whyred, a UniXNU/uefi-sheng fork with a vendor-free SDM636 whyred platform. The boot path stays \"fastboot boot\" only: never flash boot, modem, persist or recovery, and never format userdata.",
   "Vendor bootloader is Xiaomi ABL; the DT identifies the platform as qcom,msm-id <345 0x0>.",
   "The firmware platform needs UniXNURamDiskDxe, DiskIoDxe and FAT support in its DSC/FDF for the initrd payload.",
 ]
 configuration = [
-  "[firmware] fixes config = \"whyred\"; dsc, fd, packages and preflight scripts are commented out until the firmware repository exists.",
+  "[firmware] names config = \"whyred\", dsc = Platforms/Xiaomi/whyredPkg/whyred.dsc, fd = Build/whyredPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd, the whyred DTB preflight and the EDK II submodules and packages the build needs.",
   "proprietary-files.txt is the input manifest; no archive hash is recorded until the official fastboot archive is pinned.",
 ]
 procedure = [
   "HANDOFF.md fixes the base: fork UniXNU/uefi-sheng at 66421cb, take the SDM660 memory map from lavenderPkg and the UniXNU/DarwinBoot/RamDisk/FAT block from shengPkg.",
-  "Create whyredPkg with PcdSystemMemoryBase 0x80000000, stack 0x9FF90000, framebuffer 1080x2160 and the lavender memory map; add Resources/Configs/whyred.toml with FD base 0x9FC00000 and size 0x300000.",
-  "Add the board DTB from dts/whyred.dts plus soc/sdm660/dts/sdm660.dtsi, then build with ./build_uefi.py -d whyred -r RELEASE.",
-  "Fill [firmware] dsc, fd, packages and preflight, add [firmware.image] with the official archive URL, size and hashes, then list every extracted input in proprietary-files.txt.",
+  "Build N1709/uefi-whyred with ./build_uefi.py -d whyred -r RELEASE; the published tree builds a 0x300000-byte SILICIUM_UEFI.fd.",
+  "Pack the FD, the compiled whyred DTB and the UniXNU payload into one boot image with scripts/package.sh --os ios-16.7.16-20H392 --uefi ../uefi-whyred.",
+  "Fill [firmware.image] with the official archive URL, size and hashes, then list every extracted input in proprietary-files.txt.",
 ]
 findings = [
-  "No whyred UEFI repository exists; clover's firmware is a format 1 platform and cannot be used unchanged.",
-  "The closest platform is lavenderPkg (SDM660): its memory map already matches whyred, including the 0x9D400000 + 36 MiB display window.",
-  "Lavender's USE_CUSTOM_DISPLAY_DRIVER points at a closed vendor DisplayDxe for its panel; whyred needs its own vendor DXE or a generic GOP over the ABL framebuffer.",
+  "N1709/uefi-whyred builds the whyred SDM636 platform without Binaries/<device> DXEs: GOP over the ABL framebuffer, FDT memory expansion, UniXNU RamDisk and DarwinBoot. The last local build produced a 0x300000-byte SILICIUM_UEFI.fd and it has not run on the phone yet.",
+  "The closest upstream platform is lavenderPkg (SDM660): its memory map already matches whyred, including the 0x9D400000 + 36 MiB display window.",
+  "Lavender's USE_CUSTOM_DISPLAY_DRIVER points at a closed vendor DisplayDxe for its panel; whyred uses GOP over the ABL framebuffer until its own vendor DXE exists.",
   "Booting with fastboot boot keeps the vendor boot and modem partitions untouched, which is the required safety boundary for this device.",
-  "check-whyred.sh verifies the firmware bootimg dtb compilation, storage and display host models against the iOS 16 profile.",
+  "check-whyred.sh verifies the firmware boot image DTB compilation and the storage, display, input and GPU host models against the iOS 16 profile.",
 ]
 completion = [
   "A fastboot-booted firmware image reaches the UniXNU menu and publishes a framebuffer.",
   "The firmware device tree matches the board DTS memory and splash reservations.",
 ]
 limits = [
-  "Blocked on a whyred Mu-Silicium port; [firmware] is deliberately incomplete.",
+  "The firmware builds but has not run on the phone; the first fastboot boot log is still missing.",
 ]
 next_action = [
-  "Create N1709/uefi-whyred from the HANDOFF.md base, stage the whyred vendor display/I2C/TLMM/PMIC DXEs, build whyredPkg and record the first serial log.",
+  "Download Mu-whyred.img, run fastboot boot and record the first serial and framebuffer log.",
 ]
 evidence = [
   { kind = "source", reference = "HANDOFF.md", result = "Base commit, DSC values, UniXNU module list, vendor display blocker and verification order." },
+  { kind = "source", reference = "scripts/check-whyred.sh", result = "Host checks that compile the firmware DTB and the storage, display, input and GPU models." },
 ]
 
 [[area]]
@@ -441,33 +445,37 @@ paths = ["scripts/**", "patches/**", "package/**", "proprietary-files.txt"]
 inputs = [
   "iPhone X (iPhone10,3) / iOS 16.7.16 / 20H392 IPSW supplied by the OS profile.",
   "Board platform seed through --unique-chip-id or UNIXNU_UNIQUE_CHIP_ID.",
-  "Firmware checkout through --uefi; it does not exist for whyred yet.",
+  "Firmware checkout N1709/uefi-whyred through --uefi or UNIXNU_UEFI.",
 ]
 configuration = [
   "[package] unixnu = \"../UniXNU\"; [package.defconfig] maps ios-16.7.16-20H392 to whyred_defconfig.",
   "[payload.adt] chip_id = \"636\", owned_memory_size = 0x40000000, packed_data_ramdisk = true, unique_chip_id = \"required\".",
+  "profiles/os/ios-16.7.16-20H392 is vendored here and installed into UniXNU/profiles/os/ because that profile is not in the UniXNU repository.",
 ]
 procedure = [
-  "scripts/package.sh --check --os 16",
-  "scripts/package.sh --os 16 --uefi ../uefi-whyred",
+  "scripts/check-whyred.sh",
+  "scripts/package.sh --check --os ios-16.7.16-20H392",
+  "scripts/package.sh --os ios-16.7.16-20H392 --uefi ../uefi-whyred",
 ]
 findings = [
-  "The template packaging action is retained but its firmware checkout is replaced by REPLACE/uefi-whyred because no whyred firmware repository exists.",
+  "The template packaging action points at N1709/uefi-whyred; the previous REPLACE/uefi-whyred placeholder is gone.",
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
-  "package workflow and packaging options updated for the iOS 16 profile; storage and display host models verified.",
+  "The package workflow offers the full profile name ios-16.7.16-20H392, because resolve_os only maps major versions for ipados- profiles and --os 16 does not resolve.",
+  "The workflow checks out UniXNU without recursive submodules (the deps step initializes the module submodules), installs the vendored iOS 16 profile and adds unifdef and tcsh to the Homebrew tools.",
 ]
 completion = [
   "Kernel, payload and boot image build reproducibly and contain every declared input.",
   "The boot image matches the whyred bootloader format and size limit.",
 ]
 limits = [
-  "No firmware checkout, so scripts/package.sh cannot complete yet.",
+  "The package workflow has not completed on GitHub yet; the last run failed during the UniXNU checkout, before any build step.",
 ]
 next_action = [
-  "Run defconfig, fetch and the packaging check once the firmware path exists.",
+  "Rerun the package workflow and download Mu-whyred.img from the artifacts.",
 ]
 evidence = [
   { kind = "source", reference = "scripts/package.sh", result = "Unmodified device packaging script; reads [package] unixnu from board.toml." },
+  { kind = "source", reference = ".github/workflows/package.yml", result = "Full profile name, non-recursive UniXNU checkout, vendored profile install and Mu-whyred.img artifact." },
   { kind = "source", reference = "board.toml", result = "Package, payload and defconfig mapping used by the packaging script." },
 ]
 
@@ -488,7 +496,7 @@ procedure = [
 ]
 findings = [
   "The previous port proved the userdata GPT values and recovery touch but never reached a stable UniXNU boot.",
-  "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution, ADT generation, storage host models (WhyredBlock + WhyredSdhci), and display host model (WhyredDisplay).",
+  "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution, ADT generation, and the storage (WhyredBlock + WhyredSdhci), display (WhyredDisplay), input (WhyredInput) and GPU (WhyredGpu) host models.",
 ]
 completion = [
   "Every claimed milestone has a reproducible command, a matching revision and an accessible log.",
