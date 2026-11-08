@@ -72,8 +72,8 @@ jobs:
         env:
           seed: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
         run: |
-          if ! [[ "$seed" =~ ^[0-9a-fA-F]{8}$ ]]; then
-            echo 'Set the repository secret UNIXNU_UNIQUE_CHIP_ID: the platform seed of the device, 8 hex digits.' >&2
+          if ! [[ "$seed" =~ ^[0-9a-fA-F]{1,16}$ ]] || [[ "$seed" =~ ^0+$ ]]; then
+            echo 'Set the repository secret UNIXNU_UNIQUE_CHIP_ID: the platform seed of the device, 1 to 16 hex digits, nonzero.' >&2
             exit 1
           fi
       - name: package

@@ -461,7 +461,7 @@ findings = [
   "The template packaging action points at N1709/uefi-whyred; the previous REPLACE/uefi-whyred placeholder is gone.",
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
   "The package workflow offers the full profile name ios-16.7.16-20H392, because resolve_os only maps major versions for ipados- profiles and --os 16 does not resolve.",
-  "The workflow checks out UniXNU without recursive submodules (the deps step initializes the module submodules), installs the vendored iOS 16 profile and adds unifdef and tcsh to the Homebrew tools.",
+  "The workflow checks out UniXNU without recursive submodules (the deps step initializes the module submodules), installs the vendored iOS 16 profile, adds unifdef and tcsh to the Homebrew tools and accepts a 1 to 16 digit nonzero UNIXNU_UNIQUE_CHIP_ID seed.",
 ]
 completion = [
   "Kernel, payload and boot image build reproducibly and contain every declared input.",
