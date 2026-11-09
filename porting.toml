@@ -10,7 +10,7 @@ summary = "Xiaomi Redmi Note 5 (whyred), SDM636 / Kryo 260 / ARMv8.0. Format 2 d
 id = "configuration"
 status = "implemented"
 components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot"]
-paths = ["board.toml", "feeds.toml", "soc/**", "configs/**", "dts/**", "drivers/README.md", "profiles/**", ".github/**", ".gitignore", "local.toml.example"]
+paths = ["board.toml", "feeds.toml", "soc/**", "configs/**", "dts/**", "drivers/README.md", "profiles/**", ".github/**", ".githooks/**", ".gitignore", "local.toml.example"]
 inputs = [
   "Xiaomi whyred (SDM636) with 8 Kryo 260 cores: 4x Cortex-A73 MPIDR 0x100-0x103 and 4x Cortex-A53 MPIDR 0x0-0x3; qcom,msm-id = <345 0x0>.",
   "Unmodified iPhone X (iPhone10,3) / iOS 16.7.16 / 20H392 image with 4 KiB pages; Kryo 260 is ARMv8.0 without pointer authentication, so the arm64 profile is used.",
@@ -47,6 +47,7 @@ findings = [
   "A push to main also runs the package workflow during bring-up, so the annotations appear without a manual dispatch; the trigger is removed after the first green build.",
   "The package workflow no longer offers the iPadOS profile: this board builds only ios-16.7.16-20H392, and the artifact is Mu-whyred.",
   "board.toml os_overrides for ios-16.7.16-20H392 points [kernel] patch_series at the profile series, which names the 8796-adapted patches in this repository.",
+  ".githooks/pre-push runs the current upstream porting-record check with the previous remote main as the base before a push, so a commit that would leave the gate red stays local; enable it with git config core.hooksPath .githooks.",
   "The iOS 16 profile series now carries 56 patches: the upstream arm64 list with six 8796-adapted copies, three 10063-only omissions, and three toolchain-compatibility fixes for the removed auto-var-init flag, the uio stack buffer alignment and the iig kernelContent field.",
 ]
 completion = [

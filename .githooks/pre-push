@@ -1,0 +1,34 @@
+#!/bin/sh
+# Reproduce the CI porting-record gate before a push, so a change that leaves
+# it red never reaches main. CI runs UniXNU/UniXNU scripts/porting-record.py
+# from main with the previous remote main as the base; this hook uses the same
+# script revision and the same base. Enable it once per clone with:
+#
+#   git config core.hooksPath .githooks
+#
+# The sibling UniXNU checkout is the one [package] unixnu names; set UNIXNU to
+# override it.
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+unixnu=${UNIXNU:-$root/../UniXNU}
+
+if [ ! -d "$unixnu" ]; then
+	echo "pre-push: no UniXNU checkout at $unixnu; set UNIXNU to run the porting gate" >&2
+	exit 1
+fi
+
+git fetch -q origin main
+git -C "$unixnu" fetch -q origin main
+base=$(git rev-parse origin/main)
+revision=$(git -C "$unixnu" rev-parse origin/main)
+
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/porting-gate.XXXXXX")
+cleanup() {
+	git -C "$unixnu" worktree remove --force "$tmp" 2>/dev/null || rm -rf "$tmp"
+}
+trap cleanup EXIT INT TERM
+
+rm -rf "$tmp"
+git -C "$unixnu" worktree add -q --detach "$tmp" "$revision"
+python3 "$tmp/scripts/porting-record.py" check --device "$root" --base "$base"
