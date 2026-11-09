@@ -43,6 +43,7 @@ findings = [
   "The package workflow selects the full profile name (ios-16.7.16-20H392) instead of the major version, checks out UniXNU without recursive submodules (the deps step initializes them) and copies the vendored profile before packaging.",
   "The platform seed check accepts 1 to 16 hex digits and rejects zero, matching the u64 unique-chip-id that make-adt.py writes.",
   "The package step tees its output to package.log and republishes the failing lines as check-run annotations, because the job log endpoint needs repository admin rights.",
+  "A push to main also runs the package workflow during bring-up, so the annotations appear without a manual dispatch; the trigger is removed after the first green build.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
@@ -499,6 +500,7 @@ procedure = [
 findings = [
   "The previous port proved the userdata GPT values and recovery touch but never reached a stable UniXNU boot.",
   "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution, ADT generation, and the storage (WhyredBlock + WhyredSdhci), display (WhyredDisplay), input (WhyredInput) and GPU (WhyredGpu) host models.",
+  "unixnu.lock now pins xnu commit 1b191cb5 (xnu-8796.141.3) instead of the iPadOS 10063 commit that the copied profile named.",
 ]
 completion = [
   "Every claimed milestone has a reproducible command, a matching revision and an accessible log.",

@@ -2,15 +2,18 @@ name: package
 
 # Packaging action for whyred (docs/porting/packaging.md).
 #
-# The firmware checkout is N1709/uefi-whyred. It stays a manual workflow because
-# it needs the device platform seed and produces images tied to one device. The
-# porting-record workflow is the check that runs on every push.
+# The firmware checkout is N1709/uefi-whyred. The manual run needs the device
+# platform seed and produces images tied to one device. While the first build is
+# being brought up, a push to main also runs it so the failure annotations are
+# available without a manual dispatch. Remove the push trigger after bring-up.
 #
 # The platform seed comes from the repository secret UNIXNU_UNIQUE_CHIP_ID and is
 # baked into the images, so the run's artifacts belong to one device alone:
 # download them, then delete the run. Run it in a fork of this repository.
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       os:
@@ -18,6 +21,9 @@ on:
         type: choice
         options: ["ios-16.7.16-20H392", "ipados-17.7.11-21H461"]
         default: "ios-16.7.16-20H392"
+
+env:
+  OS_PROFILE: ${{ inputs.os || 'ios-16.7.16-20H392' }}
 
 permissions:
   contents: read
@@ -83,7 +89,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -o pipefail
-          scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-whyred 2>&1 | tee package.log
+          scripts/package.sh --os "$OS_PROFILE" --uefi ../uefi-whyred 2>&1 | tee package.log
       - name: package error
         # Surface the failing line in the run's annotations; the job log itself
         # needs repository admin rights, the annotation does not.
@@ -107,7 +113,7 @@ jobs:
       - name: images
         uses: actions/upload-artifact@v4
         with:
-          name: Mu-whyred-${{ inputs.os }}
+          name: Mu-whyred-${{ env.OS_PROFILE }}
           retention-days: 1
           if-no-files-found: error
           path: |
