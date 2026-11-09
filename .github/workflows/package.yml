@@ -81,7 +81,19 @@ jobs:
         env:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-whyred
+        run: |
+          set -o pipefail
+          scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-whyred 2>&1 | tee package.log
+      - name: package error
+        # Surface the failing line in the run's annotations; the job log itself
+        # needs repository admin rights, the annotation does not.
+        if: failure()
+        working-directory: device
+        run: |
+          [ -f package.log ] || exit 0
+          tail -12 package.log | while IFS= read -r line; do
+            echo "::error::${line:0:900}"
+          done
       - name: single image
         # unixnu release leaves boot/boot.img with everything in one file:
         # BootShim + SILICIUM_UEFI.fd + whyred.dtb in the kernel field and
