@@ -2,7 +2,7 @@
 "name" = "ios-16.7.16-20H392"
 "darwin" = "22.6.0"
 "xnu_version" = "8796.141.3"
-"xnu_revision" = "d8b80295118ef25ac3a784134bcf95cd8e88109f"
+"xnu_revision" = "1b191cb58250d0705d8a51287127505aa4bc0789"
 "driverkit_tag" = "xnu-8796.101.5"
 "trustcache_tag" = "xnu-8796.101.5"
 "abi" = ["IOGPUFamily", "IOHIDFamily-2031.120.4", "IOMobileGraphicsFamily"]
