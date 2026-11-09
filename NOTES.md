@@ -128,6 +128,14 @@ with the current toolchain:
   path, because the current `iig` (`DriverKit-440`) generates kernel dispatch
   code that reads that field, which 8796 predates.
 
+The adapted `source-machine-layer` also adds `nos_arm_asm nos_arm_pmap` to the
+`KERNEL_BASE` definition in `config/MASTER.arm64.bcm2837`. XNU enables those
+options through that group tag, not through the raw `options` lines in
+`config/MASTER`; without the tag the arm64 assembly and pmap sources are dropped
+and the kernel link fails with undefined symbols. `apple_amcc` stays inactive
+because 8796 has no `amcc_rorgn_*.c` sources, so the entries gated on it are
+skipped instead of breaking the build.
+
 Only the iOS 16 profile is offered: the board has one target, and the iPadOS
 profile is not part of this port.
 

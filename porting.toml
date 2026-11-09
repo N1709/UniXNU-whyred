@@ -474,17 +474,18 @@ findings = [
   "The iOS 16 series vendors six 8796-adapted patches (apple-only-cpu-tunables, external-archive-dependencies, native-aes-personality, offline-owner-systemos-mount, source-machine-layer, zzx-pmap-sync-64bit-pa) and omits three 10063-only ones (pgz-aligned-validation, public-entitlements-header, published-freezer-condition) plus boot progress; all 56 resolve and apply to xnu-8796.141.3.",
   "patches/xnu/new-clang-drop-removed-auto-var-init-flag.patch removes the -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang flag from makedefs/MakeInc.def because the LLVM 58c46bae the UniXNU toolchain builds no longer accepts it.",
   "patches/xnu/uio-stackbuf-alignment.patch replaces the uio_stackbuf_t char array with the 10063 UIO_STACKBUF macro and rounds UIO_SIZEOF up to 8 bytes, because newer clang rejects an array whose element size is not a multiple of its alignment.",
-  "patches/xnu/iig-kernel-content.patch adds IORPC.kernelContent and fills it in IOUserServer entry paths, because iig DriverKit-440 generates kernel dispatch code that reads that field, which 8796 predates."
+  "patches/xnu/iig-kernel-content.patch adds IORPC.kernelContent and fills it in IOUserServer entry paths, because iig DriverKit-440 generates kernel dispatch code that reads that field, which 8796 predates.",
+  "patches/xnu/source-machine-layer.patch also adds nos_arm_asm nos_arm_pmap to the KERNEL_BASE group in config/MASTER.arm64.bcm2837: doconf only activates an option when its tag is in the kernel group, so the raw options lines alone left the arm64 assembly and pmap sources out of the link. apple_amcc stays inactive because xnu-8796 has no amcc_rorgn_*.c sources."
 ]
 completion = [
   "Kernel, payload and boot image build reproducibly and contain every declared input.",
   "The boot image matches the whyred bootloader format and size limit.",
 ]
 limits = [
-  "The package workflow has not completed on GitHub yet; the last run failed during the UniXNU checkout, before any build step.",
+  "The package workflow reaches the kernel link but has not linked a boot image yet; the last run failed on undefined arm64 assembly and pmap symbols because the KERNEL_BASE group did not activate nos_arm_asm and nos_arm_pmap.",
 ]
 next_action = [
-  "Rerun the package workflow and download Mu-whyred.img from the artifacts.",
+  "Rerun the package workflow with the corrected KERNEL_BASE group and download Mu-whyred.img from the artifacts.",
 ]
 evidence = [
   { kind = "source", reference = "scripts/package.sh", result = "Unmodified device packaging script; reads [package] unixnu from board.toml." },

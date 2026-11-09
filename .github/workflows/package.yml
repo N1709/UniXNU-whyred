@@ -96,7 +96,14 @@ jobs:
           [ -f package.log ] || exit 0
           log=$(sed -n 's/^.*full log: //p' package.log | tail -1)
           if [ -n "$log" ] && [ -f "$log" ]; then
-            if grep -nE '(^|[^a-z])error:|fatal error:' "$log" > /tmp/xnu-errors; then
+            if grep -q "linker command failed" "$log"; then
+              # One packed annotation carries the whole undefined-symbol block;
+              # the annotation cap would otherwise keep only its first lines.
+              line=$(grep -n "Undefined symbols\|duplicate symbol\|linker command failed" "$log" | tail -1 | cut -d: -f1)
+              start=$((line > 60 ? line - 60 : 1))
+              context=$(sed -n "${start},${line}p" "$log" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN{ORS="%0A"} {print}')
+              echo "::error::${context:0:6000}"
+            elif grep -nE '(^|[^a-z])error:|fatal error:' "$log" > /tmp/xnu-errors; then
               tail -6 /tmp/xnu-errors | while IFS= read -r line; do
                 echo "::error::${line:0:900}"
               done
