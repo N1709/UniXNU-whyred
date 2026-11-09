@@ -44,6 +44,7 @@ findings = [
   "The platform seed check accepts 1 to 16 hex digits and rejects zero, matching the u64 unique-chip-id that make-adt.py writes.",
   "The package step tees its output to package.log and republishes the failing lines as check-run annotations, because the job log endpoint needs repository admin rights.",
   "A push to main also runs the package workflow during bring-up, so the annotations appear without a manual dispatch; the trigger is removed after the first green build.",
+  "The package workflow replaces UniXNU/patches/xnu/apple-only-cpu-tunables.patch with the vendored copy before packaging, because the upstream arch series applies it first and the 8796 include block differs.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
@@ -465,6 +466,7 @@ findings = [
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
   "The package workflow offers the full profile name ios-16.7.16-20H392, because resolve_os only maps major versions for ipados- profiles and --os 16 does not resolve.",
   "The workflow checks out UniXNU without recursive submodules (the deps step initializes the module submodules), installs the vendored iOS 16 profile, adds unifdef and tcsh to the Homebrew tools and accepts a 1 to 16 digit nonzero UNIXNU_UNIQUE_CHIP_ID seed.",
+  "patches/xnu/apple-only-cpu-tunables.patch is a portable copy of the upstream arch-series patch: it guards the tunables include and APPLY_TUNABLES with APPLE_ARM64_ARCH_FAMILY using context shared by XNU 8796 and 10063, so the 8796 iOS 16 source applies it.",
 ]
 completion = [
   "Kernel, payload and boot image build reproducibly and contain every declared input.",

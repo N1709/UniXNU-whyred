@@ -104,6 +104,14 @@ slide `-0x1000000`, prelinked roots all present in the 20H392 kernelcache.
 `early_security_init` is left out because XNU 8796 has no native security-init
 patch; that mechanism exists only for XNU 10063 and 12377.
 
+The upstream arch series starts with `apple-only-cpu-tunables.patch`, which was
+written for the 10063 layout. In 8796 the `start.s` include block has
+`"assym.s"` between `<machine/asm.h>` and the tunables include, and the cluster
+guard has no `&& !NO_CPU_OVRD`, so the upstream copy fails to apply. This
+repository vendors `patches/xnu/apple-only-cpu-tunables.patch`, written with
+context that both layouts share; `scripts/check-whyred.sh` and the package
+workflow copy it over the upstream file before packaging.
+
 ## Next
 
 1. Run the `package` workflow and download `Mu-whyred.img`.

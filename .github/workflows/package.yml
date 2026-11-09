@@ -58,10 +58,14 @@ jobs:
           # SPDM/unit-test trees, which are slow and not part of the build.
       - name: OS profile
         # The iOS 16 profile lives in this repository, not in UniXNU; install
-        # it before defconfig and release resolve [board] os_profile.
+        # it before defconfig and release resolve [board] os_profile. The arch
+        # series applies the tunables patch first, so replace that upstream copy
+        # with the one that matches both 8796 and 10063 start.s layouts.
         run: |
           mkdir -p UniXNU/profiles/os
           cp -a device/profiles/os/. UniXNU/profiles/os/
+          cp device/patches/xnu/apple-only-cpu-tunables.patch \
+             UniXNU/patches/xnu/apple-only-cpu-tunables.patch
       - name: tools
         run: |
           brew install dtc llvm lld cmake mtools unifdef tcsh blacktop/tap/ipsw
@@ -97,7 +101,7 @@ jobs:
         working-directory: device
         run: |
           [ -f package.log ] || exit 0
-          tail -12 package.log | while IFS= read -r line; do
+          tail -8 package.log | while IFS= read -r line; do
             echo "::error::${line:0:900}"
           done
       - name: single image
