@@ -1,0 +1,39 @@
+name: debug artifact
+
+# Temporary reader for the build-logs artifact of a finished package run.
+# Side branch only; deleted after use.
+
+on:
+  push:
+    branches: [debug-artifact]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: undefined symbols
+        env:
+          TOKEN: ${{ github.token }}
+          ARTIFACT: "13677120939"
+        run: |
+          set -eu
+          curl -sSL -H "Authorization: Bearer $TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/$ARTIFACT/zip" -o logs.zip
+          unzip -q logs.zip -d logs
+          log=$(find logs -name kernel-bootstrap.log | head -1)
+          echo "log=$log lines=$(wc -l < "$log")"
+          start=$(grep -n "Undefined symbols for architecture" "$log" | tail -1 | cut -d: -f1)
+          end=$(grep -n "ld: symbol(s) not found" "$log" | tail -1 | cut -d: -f1)
+          echo "block $start..$end"
+          sed -n "${start},${end}p" "$log" > /tmp/block.txt
+          wc -l /tmp/block.txt
+          # Symbol lines and their object files matter; annotations cap at 6000
+          # characters, so send two chunks.
+          head -60 /tmp/block.txt | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN{ORS="%0A"} {print}' > /tmp/a.txt
+          echo "::error::$(cat /tmp/a.txt | head -c 5800)"
+          tail -n +61 /tmp/block.txt | head -60 | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN{ORS="%0A"} {print}' > /tmp/b.txt
+          echo "::error::$(cat /tmp/b.txt | head -c 5800)"
