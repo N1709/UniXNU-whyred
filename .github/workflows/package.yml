@@ -96,19 +96,20 @@ jobs:
           [ -f package.log ] || exit 0
           log=$(sed -n 's/^.*full log: //p' package.log | tail -1)
           if [ -n "$log" ] && [ -f "$log" ]; then
-            if grep -q "linker command failed" "$log"; then
-              # One packed annotation carries the whole undefined-symbol block;
-              # the annotation cap would otherwise keep only its first lines.
-              line=$(grep -n "Undefined symbols\|duplicate symbol\|linker command failed" "$log" | tail -1 | cut -d: -f1)
-              start=$((line > 60 ? line - 60 : 1))
-              context=$(sed -n "${start},${line}p" "$log" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN{ORS="%0A"} {print}')
+            # The parallel build interleaves warnings with the failure, so keep
+            # only real failure lines: make/link errors, the undefined-symbol
+            # block and clang diagnostics, with warnings and their source
+            # snippets dropped. One packed annotation keeps the tail intact.
+            grep -nE 'error:|Error [0-9]+|Undefined symbols|duplicate symbol|No rule to make target|ld: ' "$log" \
+              | grep -v 'warning:' \
+              | grep -v 'Wreserved-identifier' \
+              | grep -vE '^[0-9]+:[^ ]*\.(c|h|cpp|m|s|def):[0-9]+' \
+              > /tmp/xnu-errors || true
+            if [ -s /tmp/xnu-errors ]; then
+              context=$(tail -40 /tmp/xnu-errors | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN{ORS="%0A"} {print}')
               echo "::error::${context:0:6000}"
-            elif grep -nE '(^|[^a-z])error:|fatal error:' "$log" > /tmp/xnu-errors; then
-              tail -6 /tmp/xnu-errors | while IFS= read -r line; do
-                echo "::error::${line:0:900}"
-              done
             else
-              tail -8 "$log" | while IFS= read -r line; do
+              tail -12 "$log" | while IFS= read -r line; do
                 echo "::error::${line:0:900}"
               done
             fi

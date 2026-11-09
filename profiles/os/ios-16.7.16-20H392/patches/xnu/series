@@ -4,6 +4,7 @@
 device:patches/xnu/new-clang-drop-removed-auto-var-init-flag.patch
 device:patches/xnu/uio-stackbuf-alignment.patch
 device:patches/xnu/iig-kernel-content.patch
+device:patches/xnu/arm64-nonapple-kpc-stub.patch
 device:patches/xnu/apple-only-cpu-tunables.patch
 arch:../../../patches/xnu/architectural-timer-entry.patch
 arch:../../../patches/xnu/armvirt-platform-personality.patch

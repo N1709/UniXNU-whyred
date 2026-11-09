@@ -136,6 +136,13 @@ and the kernel link fails with undefined symbols. `apple_amcc` stays inactive
 because 8796 has no `amcc_rorgn_*.c` sources, so the entries gated on it are
 skipped instead of breaking the build.
 
+`osfmk/conf/files.arm64` also lists `osfmk/arm64/kpc.c` as
+`optional kpc nos_arm_asm`, but that file only exists from 10063 onward. On
+8796 the entry stays inactive while `nos_arm_asm` is off; activating the group
+makes make stop with `No rule to make target .../kpc.c`. Because whyred has no
+Apple PMU, `arm64-nonapple-kpc-stub.patch` adds the non-Apple stub from the
+10063 file: the kpc/kperf interfaces stay linkable and report no counters.
+
 Only the iOS 16 profile is offered: the board has one target, and the iPadOS
 profile is not part of this port.
 
