@@ -23,12 +23,6 @@ CONFIG="$PROFILE/whyred"
 mkdir -p "$UNIXNU/profiles/os/$PROFILE"
 cp -a "$DEVICE/profiles/os/$PROFILE/." "$UNIXNU/profiles/os/$PROFILE/"
 
-# The upstream arch series applies this patch before any OS series. XNU 8796
-# moved "assym.s" above the tunables include, so use the copy that matches both
-# the 8796 (iOS 16) and 10063 (iPadOS 17) start.s layouts.
-cp "$DEVICE/patches/xnu/apple-only-cpu-tunables.patch" \
-   "$UNIXNU/patches/xnu/apple-only-cpu-tunables.patch"
-
 mkdir -p "$OUT"
 
 pass() { printf 'ok   %s\n' "$1"; }

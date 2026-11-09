@@ -104,13 +104,16 @@ slide `-0x1000000`, prelinked roots all present in the 20H392 kernelcache.
 `early_security_init` is left out because XNU 8796 has no native security-init
 patch; that mechanism exists only for XNU 10063 and 12377.
 
-The upstream arch series starts with `apple-only-cpu-tunables.patch`, which was
-written for the 10063 layout. In 8796 the `start.s` include block has
-`"assym.s"` between `<machine/asm.h>` and the tunables include, and the cluster
-guard has no `&& !NO_CPU_OVRD`, so the upstream copy fails to apply. This
-repository vendors `patches/xnu/apple-only-cpu-tunables.patch`, written with
-context that both layouts share; `scripts/check-whyred.sh` and the package
-workflow copy it over the upstream file before packaging.
+The upstream arm64 series targets XNU 10063 (iPadOS 17). Six patches do not
+match the 8796 source: `apple-only-cpu-tunables`, `external-archive-dependencies`,
+`native-aes-personality`, `offline-owner-systemos-mount`, `source-machine-layer`
+and `zzx-pmap-sync-64bit-pa` use code or context that moved between releases.
+This repository keeps adapted copies in `patches/xnu/` and the iOS 16 profile
+series (`profiles/os/ios-16.7.16-20H392/patches/xnu/series`) names them directly;
+the other upstream patches are referenced with `arch:`. The PGZ alignment
+validation, published-freezer condition and boot-progress patches are omitted
+because their 8796 counterparts do not exist (the first two) or still need
+adapting (boot progress). The iPadOS profile keeps the upstream arch series.
 
 ## Next
 
