@@ -47,6 +47,7 @@ findings = [
   "A push to main also runs the package workflow during bring-up, so the annotations appear without a manual dispatch; the trigger is removed after the first green build.",
   "The package workflow no longer offers the iPadOS profile: this board builds only ios-16.7.16-20H392, and the artifact is Mu-whyred.",
   "board.toml os_overrides for ios-16.7.16-20H392 points [kernel] patch_series at the profile series, which names the 8796-adapted patches in this repository.",
+  "The iOS 16 profile series now carries 56 patches: the upstream arm64 list with six 8796-adapted copies, three 10063-only omissions, and three toolchain-compatibility fixes for the removed auto-var-init flag, the uio stack buffer alignment and the iig kernelContent field.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
