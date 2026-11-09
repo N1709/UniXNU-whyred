@@ -87,14 +87,39 @@ jobs:
           scripts/package.sh --os "$OS_PROFILE" --uefi ../uefi-whyred 2>&1 | tee package.log
       - name: package error
         # Surface the failing line in the run's annotations; the job log itself
-        # needs repository admin rights, the annotation does not.
+        # needs repository admin rights, the annotation does not. The kernel
+        # build writes its diagnostics to kernel-bootstrap.log, so prefer the
+        # compiler errors there over the make recursion in package.log.
         if: failure()
         working-directory: device
         run: |
           [ -f package.log ] || exit 0
-          tail -8 package.log | while IFS= read -r line; do
-            echo "::error::${line:0:900}"
-          done
+          log=$(sed -n 's/^.*full log: //p' package.log | tail -1)
+          if [ -n "$log" ] && [ -f "$log" ]; then
+            if grep -nE '(^|[^a-z])error:|fatal error:' "$log" > /tmp/xnu-errors; then
+              tail -6 /tmp/xnu-errors | while IFS= read -r line; do
+                echo "::error::${line:0:900}"
+              done
+            else
+              tail -8 "$log" | while IFS= read -r line; do
+                echo "::error::${line:0:900}"
+              done
+            fi
+          else
+            tail -8 package.log | while IFS= read -r line; do
+              echo "::error::${line:0:900}"
+            done
+          fi
+      - name: build logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            device/package.log
+            UniXNU/out/whyred/*/whyred/logs/*.log
+          if-no-files-found: ignore
+          retention-days: 3
       - name: single image
         # unixnu release leaves boot/boot.img with everything in one file:
         # BootShim + SILICIUM_UEFI.fd + whyred.dtb in the kernel field and

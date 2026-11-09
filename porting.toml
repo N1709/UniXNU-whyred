@@ -43,6 +43,7 @@ findings = [
   "The package workflow selects the full profile name (ios-16.7.16-20H392) instead of the major version, checks out UniXNU without recursive submodules (the deps step initializes them) and copies the vendored profile before packaging.",
   "The platform seed check accepts 1 to 16 hex digits and rejects zero, matching the u64 unique-chip-id that make-adt.py writes.",
   "The package step tees its output to package.log and republishes the failing lines as check-run annotations, because the job log endpoint needs repository admin rights.",
+  "The failure step reads the kernel-bootstrap.log named by package.log and annotates its compiler errors, and uploads package.log plus the kernel logs as the build-logs artifact, because the job log endpoint needs repository admin rights.",
   "A push to main also runs the package workflow during bring-up, so the annotations appear without a manual dispatch; the trigger is removed after the first green build.",
   "The package workflow no longer offers the iPadOS profile: this board builds only ios-16.7.16-20H392, and the artifact is Mu-whyred.",
   "board.toml os_overrides for ios-16.7.16-20H392 points [kernel] patch_series at the profile series, which names the 8796-adapted patches in this repository.",
