@@ -97,9 +97,9 @@ scripts/package.sh --check --os ios-16.7.16-20H392
 scripts/package.sh --os ios-16.7.16-20H392 --uefi ../uefi-whyred
 ```
 
-The full profile name is required: `--os 16` only resolves the `ipados-` major
-versions. The manual `package` workflow runs the same two commands with the
-firmware checkout beside the device repository and publishes `Mu-whyred.img`.
+The full profile name is required: `--os 16` does not resolve the iOS profile.
+The `package` workflow runs the same two commands with the firmware checkout
+beside the device repository and publishes `Mu-whyred.img`.
 
 ## Open work
 

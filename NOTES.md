@@ -10,7 +10,7 @@ results.
 - SoC: SDM636, `qcom,msm-id = <345 0x0>` (`sdm636.dtsi`).
 - Vendor source: `Whyred-Dev/android_kernel_xiaomi_sdm660`, `lineage-15.1`,
   `d85fa37dba33a7ad7a4f5435930cae06df18f7db`.
-- Target OS: iPad7,1 / iPadOS 17.7.11 / 21H461, 4 KiB pages, arm64.
+- Target OS: iPhone X (iPhone10,3, `d22ap`) / iOS 16.7.16 / 20H392, 4 KiB pages, arm64.
 
 ## Memory
 
@@ -113,7 +113,8 @@ series (`profiles/os/ios-16.7.16-20H392/patches/xnu/series`) names them directly
 the other upstream patches are referenced with `arch:`. The PGZ alignment
 validation, published-freezer condition and boot-progress patches are omitted
 because their 8796 counterparts do not exist (the first two) or still need
-adapting (boot progress). The iPadOS profile keeps the upstream arch series.
+adapting (boot progress). Only the iOS 16 profile is offered: the board has one
+target, and the iPadOS profile is not part of this port.
 
 ## Next
 
@@ -143,7 +144,7 @@ Commands run from the UniXNU checkout:
 dtc -I dts -O dtb -i ../UniXNU-whyred/soc/sdm660/dts \
     -o /tmp/whyred.dtb ../UniXNU-whyred/dts/whyred.dts
 python3 scripts/make-adt.py --dtb /tmp/whyred.dtb \
-    --os-profile profiles/os/ipados-17.7.11-21H461/profile.toml \
+    --os-profile profiles/os/ios-16.7.16-20H392/profile.toml \
     --board ../UniXNU-whyred/board.toml \
     --unique-chip-id 0000000000000636 --data-ramdisk --trust-cache \
     --output /tmp/whyred.adt
@@ -165,10 +166,10 @@ Results:
   `CONFIG_XNU_NATIVE_PAN=n`.
 - `unixnu status`: exit 0; resolves the five components at their catalog
   revisions (`ArmCpu 93a5030`, `ArmDTPlatform 417ff95`, `SoftwareAES 4a45326`,
-  `XnuPrelink c645d76`, `DarwinBoot 3c75734`) and 59 architecture patches.
+  `XnuPrelink c645d76`, `DarwinBoot 3c75734`) and the iOS 16 series (53 patches).
 - `porting-record.py check`: `whyred: 13 structured areas checked`.
 - `unixnu fetch`: exit 0, wrote `unixnu.lock`; `unixnu tree` resolves the
-  assembled tree at `out/whyred/ipados-17.7.11-21H461/whyred/tree`.
+  assembled tree at `out/whyred/ios-16.7.16-20H392/whyred/tree`.
 - `scripts/check-whyred.sh`: reproduces all of the above offline and exits 0.
 
 ### `unixnu fetch`

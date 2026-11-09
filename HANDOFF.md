@@ -162,8 +162,8 @@ one-image build (kernel, package, firmware, payload, boot image) is:
   --edk2 out/feeds/mu_basecore-8f10084c -j 8
 ```
 
-or `scripts/package.sh --os 17 --uefi ../uefi-whyred`. Both leave the single
-`out/whyred/ipados-17.7.11-21H461/whyred/boot/boot.img`. The GitHub workflow
+or `scripts/package.sh --os ios-16.7.16-20H392 --uefi ../uefi-whyred`. Both leave the single
+`out/whyred/ios-16.7.16-20H392/whyred/boot/boot.img`. The GitHub workflow
 copies it to `Mu-whyred.img`.
 
 The standalone `build_uefi.py` cannot build the UniXNU modules: it does not add

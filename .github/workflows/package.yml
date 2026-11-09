@@ -15,15 +15,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      os:
-        description: "OS profile of the images"
-        type: choice
-        options: ["ios-16.7.16-20H392", "ipados-17.7.11-21H461"]
-        default: "ios-16.7.16-20H392"
 
 env:
-  OS_PROFILE: ${{ inputs.os || 'ios-16.7.16-20H392' }}
+  OS_PROFILE: ios-16.7.16-20H392
 
 permissions:
   contents: read
@@ -114,7 +108,7 @@ jobs:
       - name: images
         uses: actions/upload-artifact@v4
         with:
-          name: Mu-whyred-${{ env.OS_PROFILE }}
+          name: Mu-whyred
           retention-days: 1
           if-no-files-found: error
           path: |

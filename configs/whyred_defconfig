@@ -1,7 +1,7 @@
 # Board kernel configuration for whyred (SDM636, Kryo 260 / ARMv8.0).
 #
 # config_fragments already supply arch:configs/common.config,
-# soc:configs/sdm660.config and os:configs/ipados.config. This file only carries
+# soc:configs/sdm660.config and os:configs/ios.config. This file only carries
 # the board overrides, which are applied last.
 #
 # Kryo 260 is ARMv8.0 and has no PSTATE.PAN. With PAN enabled the kernel raises

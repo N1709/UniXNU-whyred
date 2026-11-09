@@ -44,7 +44,8 @@ findings = [
   "The platform seed check accepts 1 to 16 hex digits and rejects zero, matching the u64 unique-chip-id that make-adt.py writes.",
   "The package step tees its output to package.log and republishes the failing lines as check-run annotations, because the job log endpoint needs repository admin rights.",
   "A push to main also runs the package workflow during bring-up, so the annotations appear without a manual dispatch; the trigger is removed after the first green build.",
-  "board.toml os_overrides for ios-16.7.16-20H392 points [kernel] patch_series at the profile series, which names the 8796-adapted patches in this repository; other OS profiles keep the upstream arm64 series.",
+  "The package workflow no longer offers the iPadOS profile: this board builds only ios-16.7.16-20H392, and the artifact is Mu-whyred.",
+  "board.toml os_overrides for ios-16.7.16-20H392 points [kernel] patch_series at the profile series, which names the 8796-adapted patches in this repository.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
@@ -95,6 +96,7 @@ findings = [
   "Lavender's USE_CUSTOM_DISPLAY_DRIVER points at a closed vendor DisplayDxe for its panel; whyred uses GOP over the ABL framebuffer until its own vendor DXE exists.",
   "Booting with fastboot boot keeps the vendor boot and modem partitions untouched, which is the required safety boundary for this device.",
   "check-whyred.sh verifies the firmware boot image DTB compilation and the storage, display, input and GPU host models against the iOS 16 profile.",
+  "check-whyred.sh installs only the vendored iOS 16 profile and does not rewrite upstream patches; the profile series names the 8796-adapted copies directly.",
 ]
 completion = [
   "A fastboot-booted firmware image reaches the UniXNU menu and publishes a framebuffer.",
@@ -464,7 +466,7 @@ procedure = [
 findings = [
   "The template packaging action points at N1709/uefi-whyred; the previous REPLACE/uefi-whyred placeholder is gone.",
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
-  "The package workflow offers the full profile name ios-16.7.16-20H392, because resolve_os only maps major versions for ipados- profiles and --os 16 does not resolve.",
+  "The package workflow builds only ios-16.7.16-20H392, passes the full profile name and publishes the artifact as Mu-whyred.",
   "The workflow checks out UniXNU without recursive submodules (the deps step initializes the module submodules), installs the vendored iOS 16 profile, adds unifdef and tcsh to the Homebrew tools and accepts a 1 to 16 digit nonzero UNIXNU_UNIQUE_CHIP_ID seed.",
   "The iOS 16 series vendors six 8796-adapted patches (apple-only-cpu-tunables, external-archive-dependencies, native-aes-personality, offline-owner-systemos-mount, source-machine-layer, zzx-pmap-sync-64bit-pa) and omits three 10063-only ones (pgz-aligned-validation, public-entitlements-header, published-freezer-condition) plus boot progress; all 53 resolve and apply to xnu-8796.141.3.",
 ]
@@ -502,6 +504,7 @@ procedure = [
 findings = [
   "The previous port proved the userdata GPT values and recovery touch but never reached a stable UniXNU boot.",
   "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution, ADT generation, and the storage (WhyredBlock + WhyredSdhci), display (WhyredDisplay), input (WhyredInput) and GPU (WhyredGpu) host models.",
+  "The diagnostics path resolves only the iOS 16 profile and the 53-patch 8796 series; the iPadOS profile is not installed or selected.",
   "unixnu.lock now pins xnu commit 1b191cb5 (xnu-8796.141.3) instead of the iPadOS 10063 commit that the copied profile named.",
 ]
 completion = [

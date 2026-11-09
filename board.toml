@@ -94,7 +94,6 @@ unixnu = "../UniXNU"
 
 # The iOS 16 target uses XNU 8796, whose start.s, MakeInc.kernel and pmap
 # differ from the 10063 source the upstream arm64 series targets. This profile
-# uses a series that replaces or omits the incompatible patches (see NOTES.md);
-# the iPadOS profile keeps the upstream arch series.
+# uses a series that replaces or omits the incompatible patches (see NOTES.md).
 [os_overrides."ios-16.7.16-20H392".kernel]
 patch_series = ["os:patches/xnu/series"]
