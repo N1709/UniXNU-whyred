@@ -469,7 +469,8 @@ findings = [
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
   "The package workflow builds only ios-16.7.16-20H392, passes the full profile name and publishes the artifact as Mu-whyred.",
   "The workflow checks out UniXNU without recursive submodules (the deps step initializes the module submodules), installs the vendored iOS 16 profile, adds unifdef and tcsh to the Homebrew tools and accepts a 1 to 16 digit nonzero UNIXNU_UNIQUE_CHIP_ID seed.",
-  "The iOS 16 series vendors six 8796-adapted patches (apple-only-cpu-tunables, external-archive-dependencies, native-aes-personality, offline-owner-systemos-mount, source-machine-layer, zzx-pmap-sync-64bit-pa) and omits three 10063-only ones (pgz-aligned-validation, public-entitlements-header, published-freezer-condition) plus boot progress; all 53 resolve and apply to xnu-8796.141.3.",
+  "The iOS 16 series vendors six 8796-adapted patches (apple-only-cpu-tunables, external-archive-dependencies, native-aes-personality, offline-owner-systemos-mount, source-machine-layer, zzx-pmap-sync-64bit-pa) and omits three 10063-only ones (pgz-aligned-validation, public-entitlements-header, published-freezer-condition) plus boot progress; all 54 resolve and apply to xnu-8796.141.3.",
+  "patches/xnu/new-clang-drop-removed-auto-var-init-flag.patch removes the -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang flag from makedefs/MakeInc.def because the LLVM 58c46bae the UniXNU toolchain builds no longer accepts it."
 ]
 completion = [
   "Kernel, payload and boot image build reproducibly and contain every declared input.",
@@ -505,7 +506,7 @@ procedure = [
 findings = [
   "The previous port proved the userdata GPT values and recovery touch but never reached a stable UniXNU boot.",
   "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution, ADT generation, and the storage (WhyredBlock + WhyredSdhci), display (WhyredDisplay), input (WhyredInput) and GPU (WhyredGpu) host models.",
-  "The diagnostics path resolves only the iOS 16 profile and the 53-patch 8796 series; the iPadOS profile is not installed or selected.",
+  "The diagnostics path resolves only the iOS 16 profile and the 54-patch 8796 series; the iPadOS profile is not installed or selected.",
   "unixnu.lock now pins xnu commit 1b191cb5 (xnu-8796.141.3) instead of the iPadOS 10063 commit that the copied profile named.",
 ]
 completion = [

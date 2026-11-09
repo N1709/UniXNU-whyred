@@ -1,5 +1,7 @@
 # XNU 8796 (iOS 16) series: the upstream arm64 list with the patches that
-# only match the 10063 source replaced or omitted; see NOTES.md.
+# only match the 10063 source replaced or omitted, plus the current LLVM fix;
+# see NOTES.md.
+device:patches/xnu/new-clang-drop-removed-auto-var-init-flag.patch
 device:patches/xnu/apple-only-cpu-tunables.patch
 arch:../../../patches/xnu/architectural-timer-entry.patch
 arch:../../../patches/xnu/armvirt-platform-personality.patch

@@ -113,8 +113,14 @@ series (`profiles/os/ios-16.7.16-20H392/patches/xnu/series`) names them directly
 the other upstream patches are referenced with `arch:`. The PGZ alignment
 validation, published-freezer condition and boot-progress patches are omitted
 because their 8796 counterparts do not exist (the first two) or still need
-adapting (boot progress). Only the iOS 16 profile is offered: the board has one
-target, and the iPadOS profile is not part of this port.
+adapting (boot progress). The 8796 series also keeps
+`patches/xnu/new-clang-drop-removed-auto-var-init-flag.patch`, which drops
+`-enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang`
+from `makedefs/MakeInc.def`: the LLVM this UniXNU toolchain builds
+(`58c46bae`) removed the flag and rejects it.
+
+Only the iOS 16 profile is offered: the board has one target, and the iPadOS
+profile is not part of this port.
 
 ## Next
 
