@@ -97,16 +97,12 @@ jobs:
           log=$(sed -n 's/^.*full log: //p' package.log | tail -1)
           if [ -n "$log" ] && [ -f "$log" ]; then
             # The parallel build interleaves warnings with the failure, so keep
-            # only real failure lines: make/link errors, the undefined-symbol
-            # block and clang diagnostics, with warnings and their source
-            # snippets dropped. One packed annotation keeps the tail intact.
-            grep -nE 'error:|Error [0-9]+|Undefined symbols|duplicate symbol|No rule to make target|ld: ' "$log" \
-              | grep -v 'warning:' \
-              | grep -v 'Wreserved-identifier' \
-              | grep -vE '^[0-9]+:[^ ]*\.(c|h|cpp|m|s|def):[0-9]+' \
+            # only real failure lines: anchored clang diagnostics, make/link
+            # errors and the undefined-symbol block with its object files.
+            grep -nE '^[0-9]+:([^ :][^:]*:[0-9]+(:[0-9]+)?: (fatal )?error:|clang(\+\+)?: (fatal )?error:|Undefined symbols for architecture|duplicate symbol|No rule to make target|ld: | *"_[A-Za-z0-9_]+| *_[A-Za-z0-9_]+ in [^ ]+\.o$)' "$log" \
               > /tmp/xnu-errors || true
             if [ -s /tmp/xnu-errors ]; then
-              context=$(tail -40 /tmp/xnu-errors | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN{ORS="%0A"} {print}')
+              context=$(tail -50 /tmp/xnu-errors | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN{ORS="%0A"} {print}')
               echo "::error::${context:0:6000}"
             else
               tail -12 "$log" | while IFS= read -r line; do
