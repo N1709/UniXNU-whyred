@@ -189,6 +189,26 @@ The package workflow sets `CCACHE` to
 step. `kernel.build()` starts from `dict(os.environ)`, so the value reaches
 make unchanged; no framework change and no pin bump are needed.
 
+Run `42922819047` confirms it: `archive-07-build-mockfs-fixture.log` ends with
+`3 XNU mockfs sources compiled`, so the fixture archive exists. The same run
+then stopped in `archive-08-build-libpthread-kernel.log` with `22 warnings and
+1 error generated`. The log only holds the last 4500 characters of the
+compiler output, so the diagnostic itself was lost; the source names the
+cause: `kern_support.c:670` calls `pthread_kern->proc_get_jit_entitled`, a
+callback that `pthread_callbacks_s` only gained after xnu-8796. The pinned
+libpthread is the iOS 17 drop, so the component is one API ahead of this
+kernel in exactly that place.
+
+`patches/libpthread/` mirrors the same fix the NX769J board carries. A device
+`patches/libpthread` directory shadows UniXNU's instead of adding to it, so
+`explicit-kernel-address.patch` is copied byte for byte
+(`sha256 e07db8de...`) next to `xnu-8796-no-jit-entitlement.patch`
+(`sha256 b558e5af...`). Both apply cleanly, in that order, to libpthread
+`c0e60fb5`. The bootstrap link in the same run still lists `_kpc_pc_capture`
+and the three mockfs symbols, but that link runs with `XNU_BOOTSTRAP=1`
+before any archive exists; the archive step is the one that has to be clean,
+and it now reaches archive 08.
+
 The package workflow checks out UniXNU at `b936519` rather than following
 upstream `main`. Upstream `main` (`d830d23`) points
 `drivers/AppleKeyStoreState` at `6ff4f11`, a commit that its remote no longer

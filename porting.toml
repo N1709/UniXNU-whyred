@@ -470,6 +470,7 @@ procedure = [
   "scripts/package.sh --os ios-16.7.16-20H392 --uefi ../uefi-whyred",
 ]
 findings = [
+  "patches/libpthread/ shadows the framework directory and carries explicit-kernel-address.patch plus xnu-8796-no-jit-entitlement.patch: the pinned libpthread is the iOS 17 drop and bsdthread_register calls proc_get_jit_entitled, which xnu-8796 does not have, so the component failed with 1 error generated in run 42922819047.",
   "The template packaging action points at N1709/uefi-whyred; the previous REPLACE/uefi-whyred placeholder is gone.",
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
   "The package workflow builds only ios-16.7.16-20H392, passes the full profile name and publishes the artifact as Mu-whyred.",
@@ -488,10 +489,10 @@ completion = [
   "The boot image matches the whyred bootloader format and size limit.",
 ]
 limits = [
-  "The package workflow has not linked a boot image yet. Run 42787794966 stopped at the link on kpc_pc_capture, mockfs_* and pmap_pending_preemption; the two non-Apple stubs cover the first and last, and mockfs is selected by CONFIG_XNU_SOURCE_MOCKFS, but the bootstrap pass that builds the compile records never reached the fixture archive. The CCACHE wrapper removes that gap and has not been exercised on CI yet.",
+  "The package workflow has not linked a boot image yet. Run 42787794966 stopped at the link on kpc_pc_capture, mockfs_* and pmap_pending_preemption; the two non-Apple stubs cover the first and last, and mockfs is selected by CONFIG_XNU_SOURCE_MOCKFS, but the bootstrap pass that builds the compile records never reached the fixture archive. The CCACHE wrapper is proven: run 42922819047 built the mockfs fixture and reached the archive list. What stopped that run was the libpthread component calling proc_get_jit_entitled, which xnu-8796 does not have; patches/libpthread/ now adapts it.",
 ]
 next_action = [
-  "Rerun the package workflow; require kernel-bootstrap.log to reach the link without an undefined-symbol block and kernel.log to build every archive, then download Mu-whyred.img from the artifacts.",
+  "Rerun the package workflow; require every archive log to end without a python3 failure and the final kernel link to have no undefined-symbol block, then download Mu-whyred.img from the artifacts.",
 ]
 evidence = [
   { kind = "source", reference = "scripts/package.sh", result = "Unmodified device packaging script; reads [package] unixnu from board.toml." },
