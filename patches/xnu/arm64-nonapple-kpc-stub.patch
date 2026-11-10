@@ -187,3 +187,9 @@ index 0000000..ca8a589
 +{
 +	return 0;
 +}
++
++/*
++ * kern_kpc.c exports this through the pc_capture_supported sysctl. The Apple
++ * PMU sets it when the hardware can capture PCs; a non-Apple SoC cannot.
++ */
++int kpc_pc_capture;

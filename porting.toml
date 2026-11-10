@@ -48,7 +48,7 @@ findings = [
   "The package workflow no longer offers the iPadOS profile: this board builds only ios-16.7.16-20H392, and the artifact is Mu-whyred.",
   "board.toml os_overrides for ios-16.7.16-20H392 points [kernel] patch_series at the profile series, which names the 8796-adapted patches in this repository.",
   ".githooks/pre-push runs the current upstream porting-record check with the previous remote main as the base before a push, so a commit that would leave the gate red stays local; enable it with git config core.hooksPath .githooks.",
-  "The iOS 16 profile series now carries 57 patches: the upstream arm64 list with six 8796-adapted copies, three 10063-only omissions, three toolchain-compatibility fixes for the removed auto-var-init flag, the uio stack buffer alignment and the iig kernelContent field, and the non-Apple arm64 kpc stub that 8796 lacks once nos_arm_asm is active.",
+  "The iOS 16 profile series now carries 58 patches: the upstream arm64 list with six 8796-adapted copies, three 10063-only omissions, three toolchain-compatibility fixes for the removed auto-var-init flag, the uio stack buffer alignment and the iig kernelContent field, and the non-Apple arm64 kpc and pmap stubs that 8796 lacks once nos_arm_asm and the debug sched-hygiene path are active.",
 ]
 completion = [
   "unixnu status resolves arch arm64, soc sdm660, OS ios-16.7.16-20H392 and device whyred with no missing source.",
@@ -471,11 +471,12 @@ findings = [
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
   "The package workflow builds only ios-16.7.16-20H392, passes the full profile name and publishes the artifact as Mu-whyred.",
   "The workflow checks out UniXNU without recursive submodules (the deps step initializes the module submodules), installs the vendored iOS 16 profile, adds unifdef and tcsh to the Homebrew tools and accepts a 1 to 16 digit nonzero UNIXNU_UNIQUE_CHIP_ID seed.",
-  "The iOS 16 series vendors six 8796-adapted patches (apple-only-cpu-tunables, external-archive-dependencies, native-aes-personality, offline-owner-systemos-mount, source-machine-layer, zzx-pmap-sync-64bit-pa) and omits three 10063-only ones (pgz-aligned-validation, public-entitlements-header, published-freezer-condition) plus boot progress; all 57 resolve and apply to xnu-8796.141.3.",
+  "The iOS 16 series vendors six 8796-adapted patches (apple-only-cpu-tunables, external-archive-dependencies, native-aes-personality, offline-owner-systemos-mount, source-machine-layer, zzx-pmap-sync-64bit-pa) and omits three 10063-only ones (pgz-aligned-validation, public-entitlements-header, published-freezer-condition) plus boot progress; all 58 resolve and apply to xnu-8796.141.3.",
   "patches/xnu/new-clang-drop-removed-auto-var-init-flag.patch removes the -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang flag from makedefs/MakeInc.def because the LLVM 58c46bae the UniXNU toolchain builds no longer accepts it.",
   "patches/xnu/uio-stackbuf-alignment.patch replaces the uio_stackbuf_t char array with the 10063 UIO_STACKBUF macro and rounds UIO_SIZEOF up to 8 bytes, because newer clang rejects an array whose element size is not a multiple of its alignment.",
   "patches/xnu/iig-kernel-content.patch adds IORPC.kernelContent and fills it in IOUserServer entry paths, because iig DriverKit-440 generates kernel dispatch code that reads that field, which 8796 predates.",
-  "patches/xnu/arm64-nonapple-kpc-stub.patch adds the non-Apple arm64 kpc.c stub, because osfmk/conf/files.arm64 lists that file under kpc nos_arm_asm and 8796 predates it; with the group active make stopped at No rule to make target kpc.c.",
+  "patches/xnu/arm64-nonapple-kpc-stub.patch adds the non-Apple arm64 kpc.c stub, because osfmk/conf/files.arm64 lists that file under kpc nos_arm_asm and 8796 predates it; with the group active make stopped at No rule to make target kpc.c. The stub also defines kpc_pc_capture, which kern_kpc.c exports through pc_capture_supported and the Apple PMU would otherwise provide.",
+  "patches/xnu/arm64-nonapple-pmap-stub.patch defines pmap_pending_preemption in osfmk/arm/pmap/pmap_misc.c when SCHED_HYGIENE_DEBUG and DEVELOPMENT are on: pmap.h declares it out of line for that configuration, but 8796 only ships the definition in Apple's closed per-SoC pmap.",
   "patches/xnu/source-machine-layer.patch also adds nos_arm_asm nos_arm_pmap to the KERNEL_BASE group in config/MASTER.arm64.bcm2837: doconf only activates an option when its tag is in the kernel group, so the raw options lines alone left the arm64 assembly and pmap sources out of the link. apple_amcc stays inactive because xnu-8796 has no amcc_rorgn_*.c sources."
 ]
 completion = [
@@ -483,10 +484,10 @@ completion = [
   "The boot image matches the whyred bootloader format and size limit.",
 ]
 limits = [
-  "The package workflow reaches the kernel link but has not linked a boot image yet; the last run failed on undefined arm64 assembly and pmap symbols because the KERNEL_BASE group did not activate nos_arm_asm and nos_arm_pmap.",
+  "The package workflow reaches the kernel link but has not linked a boot image yet; the last run stopped on undefined kpc_pc_capture, mockfs_* and pmap_pending_preemption symbols. kpc_pc_capture and pmap_pending_preemption now come from the two non-Apple stubs; mockfs is selected by CONFIG_XNU_SOURCE_MOCKFS and linked from the mockfs fixture archive.",
 ]
 next_action = [
-  "Rerun the package workflow with the corrected KERNEL_BASE group and download Mu-whyred.img from the artifacts.",
+  "Rerun the package workflow with the two non-Apple stubs and check that the undefined-symbol block is empty, then download Mu-whyred.img from the artifacts.",
 ]
 evidence = [
   { kind = "source", reference = "scripts/package.sh", result = "Unmodified device packaging script; reads [package] unixnu from board.toml." },
@@ -512,7 +513,7 @@ procedure = [
 findings = [
   "The previous port proved the userdata GPT values and recovery touch but never reached a stable UniXNU boot.",
   "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution, ADT generation, and the storage (WhyredBlock + WhyredSdhci), display (WhyredDisplay), input (WhyredInput) and GPU (WhyredGpu) host models.",
-  "The diagnostics path resolves only the iOS 16 profile and the 57-patch 8796 series; the iPadOS profile is not installed or selected.",
+  "The diagnostics path resolves only the iOS 16 profile and the 58-patch 8796 series; the iPadOS profile is not installed or selected.",
   "unixnu.lock now pins xnu commit 1b191cb5 (xnu-8796.141.3) instead of the iPadOS 10063 commit that the copied profile named.",
 ]
 completion = [

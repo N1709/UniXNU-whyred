@@ -1,0 +1,26 @@
+diff --git a/osfmk/arm/pmap/pmap_misc.c b/osfmk/arm/pmap/pmap_misc.c
+index 71f8b16..2a3c3f1 100644
+--- a/osfmk/arm/pmap/pmap_misc.c
++++ b/osfmk/arm/pmap/pmap_misc.c
+@@ -35,8 +35,21 @@
+  * in this file until we deem it large and important enough to break into its
+  * own file.
+  */
+ 
+ 
++#if SCHED_HYGIENE_DEBUG && (DEVELOPMENT || DEBUG) && !XNU_MONITOR
++/*
++ * pmap.h declares this out of line for these configs, but the definition
++ * ships only in Apple's closed per-SoC pmap. Without the PPL there is no
++ * extra state to check.
++ */
++bool
++pmap_pending_preemption(void)
++{
++	return _pmap_pending_preemption_real();
++}
++#endif /* SCHED_HYGIENE_DEBUG && (DEVELOPMENT || DEBUG) && !XNU_MONITOR */
++
+ void
+ pmap_abandon_measurement(void)
+ {

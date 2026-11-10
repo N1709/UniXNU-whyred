@@ -141,7 +141,24 @@ skipped instead of breaking the build.
 8796 the entry stays inactive while `nos_arm_asm` is off; activating the group
 makes make stop with `No rule to make target .../kpc.c`. Because whyred has no
 Apple PMU, `arm64-nonapple-kpc-stub.patch` adds the non-Apple stub from the
-10063 file: the kpc/kperf interfaces stay linkable and report no counters.
+10063 file: the kpc/kperf interfaces stay linkable and report no counters. It
+also defines `kpc_pc_capture`, which `kern_kpc.c` exports through the
+`pc_capture_supported` sysctl; the Apple PMU normally sets it, and a phone
+without PC sampling reports zero.
+
+`pmap.h` declares `pmap_pending_preemption()` out of line when
+`SCHED_HYGIENE_DEBUG && (DEBUG || DEVELOPMENT)`, but 8796 only ships the
+definition in Apple's closed per-SoC pmap. The development kernel therefore
+linked without it. `arm64-nonapple-pmap-stub.patch` defines it next to
+`pmap_abandon_measurement()` in `osfmk/arm/pmap/pmap_misc.c` and returns the
+urgent-AST check the inline version uses; it is compiled only under that same
+configuration and when `XNU_MONITOR` is off.
+
+The earlier link also missed `mockfs_mountroot`, `mockfs_vfsops` and
+`mockfs_vnodeop_opv_desc`. `CONFIG_XNU_SOURCE_MOCKFS=y` turns on both the
+`-DMOCKFS=1` compile of `vfs_conf.c` and the `build-mockfs-fixture.py` archive,
+so a clean build links them; the undefined block came from the same run that
+never reached the archive step. No mockfs stub is needed.
 
 Only the iOS 16 profile is offered: the board has one target, and the iPadOS
 profile is not part of this port.
@@ -196,7 +213,7 @@ Results:
   `CONFIG_XNU_NATIVE_PAN=n`.
 - `unixnu status`: exit 0; resolves the five components at their catalog
   revisions (`ArmCpu 93a5030`, `ArmDTPlatform 417ff95`, `SoftwareAES 4a45326`,
-  `XnuPrelink c645d76`, `DarwinBoot 3c75734`) and the iOS 16 series (53 patches).
+  `XnuPrelink c645d76`, `DarwinBoot 3c75734`) and the iOS 16 series (58 patches).
 - `porting-record.py check`: `whyred: 13 structured areas checked`.
 - `unixnu fetch`: exit 0, wrote `unixnu.lock`; `unixnu tree` resolves the
   assembled tree at `out/whyred/ios-16.7.16-20H392/whyred/tree`.
