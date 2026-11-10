@@ -88,6 +88,13 @@ jobs:
         env:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
           GITHUB_TOKEN: ${{ github.token }}
+          # XNU's makedefs set KCC = $(CCACHE) $(CC) and leave CCACHE to the
+          # build that drives it. The archive builders replay one compile from
+          # the record next to that object, so the wrapper writes
+          # <object>.json before it runs the compiler. Without it the first
+          # pass leaves no startup.o.json, and the bootstrap link has no way
+          # to build the mockfs fixture.
+          CCACHE: ${{ github.workspace }}/device/scripts/compile-records.py
         run: |
           set -o pipefail
           scripts/package.sh --os "$OS_PROFILE" --uefi ../uefi-whyred 2>&1 | tee package.log

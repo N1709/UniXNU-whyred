@@ -163,6 +163,32 @@ never reached the archive step. No mockfs stub is needed.
 Only the iOS 16 profile is offered: the board has one target, and the iPadOS
 profile is not part of this port.
 
+### 2026-11-11: the bootstrap pass needs per-object compile records
+
+Run `42787794966` reached the link and reported four symbols this board does
+not define: `_kpc_pc_capture`, `_mockfs_mountroot`, `_mockfs_vfsops` and
+`_mockfs_vnodeop_opv_desc`. The pmap and mockfs sources are selected, so the
+fault is earlier: the pinned UniXNU `b936519` has no per-object `.o.json`
+generator, `startup.o.json` never appears, and `unixnu build` therefore always
+takes its bootstrap pass. That pass builds and links without the archive set,
+so the mockfs fixture is never compiled and the link is expected to fail.
+
+`scripts/compile-records.py` is the generator. XNU's `makedefs/MakeInc.def`
+already says `KCC = $(CCACHE) $(CC)` and leaves `CCACHE` to the driver of the
+build, so exporting `CCACHE=<script>` makes every C compile pass through the
+wrapper. The wrapper records the CMake-style `{directory, file, arguments}`
+entry as `<object>.json` next to the object before `execv`-ing the compiler,
+and states `-o` explicitly when XNU's C rule lets clang derive the object
+name; `build-mockfs-fixture.py` and `build-libpthread-kernel.py` substitute
+`-o` and would otherwise write the object where the consumer does not look.
+The archive builders read exactly `vfs_conf.o.json` and `prng_random.o.json`,
+so the first pass now leaves both and the archive step can run.
+
+The package workflow sets `CCACHE` to
+`${{ github.workspace }}/device/scripts/compile-records.py` for the package
+step. `kernel.build()` starts from `dict(os.environ)`, so the value reaches
+make unchanged; no framework change and no pin bump are needed.
+
 The package workflow checks out UniXNU at `b936519` rather than following
 upstream `main`. Upstream `main` (`d830d23`) points
 `drivers/AppleKeyStoreState` at `6ff4f11`, a commit that its remote no longer
