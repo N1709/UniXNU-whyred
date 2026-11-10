@@ -163,6 +163,14 @@ never reached the archive step. No mockfs stub is needed.
 Only the iOS 16 profile is offered: the board has one target, and the iPadOS
 profile is not part of this port.
 
+The package workflow checks out UniXNU at `b936519` rather than following
+upstream `main`. Upstream `main` (`d830d23`) points
+`drivers/AppleKeyStoreState` at `6ff4f11`, a commit that its remote no longer
+serves, so `git submodule update --init --recursive` in the deps step fails
+before the kernel build. `b936519` is the revision this board's `unixnu
+status`, tree and 58-patch series were verified against; update the pin once
+upstream repairs the submodule.
+
 ## Next
 
 1. Run the `package` workflow and download `Mu-whyred.img`.

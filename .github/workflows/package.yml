@@ -39,6 +39,12 @@ jobs:
         with:
           repository: UniXNU/UniXNU
           path: UniXNU
+          # Pin the framework: upstream main currently points
+          # drivers/AppleKeyStoreState at 6ff4f11, a commit its remote no
+          # longer advertises, so the deps submodule update fails before any
+          # build step. b936519 is the revision this board's status, tree and
+          # patch series were verified against.
+          ref: b936519575e532872ad86456657bcb9cef9915df
           # The deps step initializes the module submodules it needs. A
           # recursive checkout here repeats that work and fails the whole run
           # before any build step when one submodule is unreachable.
