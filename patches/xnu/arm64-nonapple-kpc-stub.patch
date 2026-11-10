@@ -3,7 +3,7 @@ new file mode 100644
 index 0000000..ca8a589
 --- /dev/null
 +++ b/osfmk/arm64/kpc.c
-@@ -0,0 +1,183 @@
+@@ -0,0 +1,189 @@
 +/*
 + * Copyright (c) 2012-2018 Apple Inc. All rights reserved.
 + *

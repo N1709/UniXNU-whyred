@@ -31,6 +31,7 @@ procedure = [
   "python3 scripts/porting-record.py check --device ../UniXNU-whyred",
 ]
 findings = [
+  "The package workflow runs scripts/check-patches.py as a patch integrity step: a hunk header whose count is short makes git apply ignore the extra lines silently, which left kpc_pc_capture undefined while osfmk/arm64/kpc.c was present and compiled.",
   "The vendor DT puts qcom,msm-id = <345 0x0> in sdm636.dtsi, which separates whyred from the SDM660 clover port (msm-id 317).",
   "The previous whyred XNU work used a contiguous splash buffer at 0x9d400000 + 36 MiB; the board DTS keeps the same reservation.",
   "The shared directory is a local SoC feed, not a copied core checkout: moving it later changes only feeds.toml and the pin.",
@@ -96,6 +97,7 @@ procedure = [
   "Fill [firmware.image] with the official archive URL, size and hashes, then list every extracted input in proprietary-files.txt.",
 ]
 findings = [
+  "scripts/check-patches.py verifies every hunk count in patches/, so a short header cannot drop lines from a patched source again.",
   "scripts/compile-records.py is a host-side build hook for the XNU CCACHE slot, not a packaged input; package.sh, make-adt.py and the firmware checks are unchanged.",
   "N1709/uefi-whyred builds the whyred SDM636 platform without Binaries/<device> DXEs: GOP over the ABL framebuffer, FDT memory expansion, UniXNU RamDisk and DarwinBoot. The last local build produced a 0x300000-byte SILICIUM_UEFI.fd and it has not run on the phone yet.",
   "The closest upstream platform is lavenderPkg (SDM660): its memory map already matches whyred, including the 0x9D400000 + 36 MiB display window.",
@@ -470,6 +472,7 @@ procedure = [
   "scripts/package.sh --os ios-16.7.16-20H392 --uefi ../uefi-whyred",
 ]
 findings = [
+  "patches/xnu/arm64-nonapple-kpc-stub.patch declared +1,183 for a 189-line body, so git apply dropped the trailing int kpc_pc_capture and the final link reported that symbol undefined; the header is corrected to +1,189 and every patch is checked.",
   "patches/libpthread/ shadows the framework directory and carries explicit-kernel-address.patch plus xnu-8796-no-jit-entitlement.patch: the pinned libpthread is the iOS 17 drop and bsdthread_register calls proc_get_jit_entitled, which xnu-8796 does not have, so the component failed with 1 error generated in run 42922819047.",
   "The template packaging action points at N1709/uefi-whyred; the previous REPLACE/uefi-whyred placeholder is gone.",
   "unixnu.lock pins AvailabilityVersions, IOStorageFamily, corecrypto-2023, edk2, libdispatch, libplatform, libpthread, xnu and whyred-android-dt; component revisions come from components.toml.",
@@ -489,7 +492,7 @@ completion = [
   "The boot image matches the whyred bootloader format and size limit.",
 ]
 limits = [
-  "The package workflow has not linked a boot image yet. Run 42787794966 stopped at the link on kpc_pc_capture, mockfs_* and pmap_pending_preemption; the two non-Apple stubs cover the first and last, and mockfs is selected by CONFIG_XNU_SOURCE_MOCKFS, but the bootstrap pass that builds the compile records never reached the fixture archive. The CCACHE wrapper is proven: run 42922819047 built the mockfs fixture and reached the archive list. What stopped that run was the libpthread component calling proc_get_jit_entitled, which xnu-8796 does not have; patches/libpthread/ now adapts it.",
+  "The package workflow has not linked a boot image yet. Run 42787794966 stopped at the link on kpc_pc_capture, mockfs_* and pmap_pending_preemption; the two non-Apple stubs cover the first and last, and mockfs is selected by CONFIG_XNU_SOURCE_MOCKFS, but the bootstrap pass that builds the compile records never reached the fixture archive. The CCACHE wrapper and the libpthread adaptation are proven: run 42925053394 built the mockfs fixture and every archive, and the final link then failed on kpc_pc_capture alone, which a short patch hunk header had silently dropped. The header is fixed and checked, but no run has linked the kernel yet.",
 ]
 next_action = [
   "Rerun the package workflow; require every archive log to end without a python3 failure and the final kernel link to have no undefined-symbol block, then download Mu-whyred.img from the artifacts.",
@@ -516,6 +519,7 @@ procedure = [
   "Capture the first boot over UART, record the last confirmed checkpoint and attach the log to this area.",
 ]
 findings = [
+  "scripts/check-patches.py reports the file and hunk whose declared counts differ from its body, turning a silent git apply truncation into a fail-fast step.",
   "scripts/compile-records.py writes the per-object .o.json records that the kernel archive builders replay, so a bootstrap pass no longer stops before the mockfs fixture is compiled.",
   "The previous port proved the userdata GPT values and recovery touch but never reached a stable UniXNU boot.",
   "Host-side checks in check-whyred.sh verify the iOS 16 profile resolution, ADT generation, and the storage (WhyredBlock + WhyredSdhci), display (WhyredDisplay), input (WhyredInput) and GPU (WhyredGpu) host models.",

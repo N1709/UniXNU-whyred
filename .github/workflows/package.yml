@@ -83,6 +83,11 @@ jobs:
             echo 'Set the repository secret UNIXNU_UNIQUE_CHIP_ID: the platform seed of the device, 1 to 16 hex digits, nonzero.' >&2
             exit 1
           fi
+      - name: patch integrity
+        # A hunk header with a wrong line count makes git apply ignore the extra
+        # lines without an error. That is how kpc_pc_capture went missing while
+        # osfmk/arm64/kpc.c was present and compiled. Fail before the build.
+        run: python3 device/scripts/check-patches.py
       - name: package
         working-directory: device
         env:

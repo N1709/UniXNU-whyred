@@ -293,3 +293,34 @@ The lock records `xnu d8b8029`, `edk2 cfb9372`, `corecrypto-2023 11fba65`,
 `whyred-android-dt d85fa37`. Component revisions stay in
 `UniXNU/components.toml`.
 
+
+### 2026-11-11: the kpc stub patch silently dropped its last six lines
+
+Run `42925053394` cleared the libpthread gap: `archive-08-build-libpthread-kernel.log`
+now ends with `Matching libpthread: 3 real C sources + bootstrap, ARM64/iOS 17
+audit, no unavailable kernel names`, and the mockfs archive still builds. The
+final link then reported exactly one symbol:
+
+    "_kpc_pc_capture", referenced from:
+        _sysctl__kpc_pc_capture_supported in kern_kpc.o
+
+`arm64-nonapple-kpc-stub.patch` does define it, the file is in the tree, and
+the bootstrap log shows `osfmk/arm64/kpc.c` compiling. The patch header was the
+bug:
+
+    @@ -0,0 +1,183 @@
+
+while the body carries 189 added lines. `git apply` applies the declared count
+and silently ignores the rest, so the last six lines - the comment and
+`int kpc_pc_capture;` - never reached the file. The symbol was missing while
+the source looked complete, which is why the error pointed at a file that
+appeared to be there.
+
+The header now says `+1,189` and the applied file is 189 lines. The other
+twelve patches and the two libpthread patches were checked for the same
+mistake.
+
+`scripts/check-patches.py` validates every hunk's declared and actual line
+counts, and the package workflow runs it as a `patch integrity` step before
+`package`. A count that does not match fails the run instead of shipping a
+tree that only looks right.
