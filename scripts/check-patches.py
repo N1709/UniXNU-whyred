@@ -56,7 +56,8 @@ def check(path):
 
 
 def main(argv):
-    roots = [Path(argument) for argument in argv[1:]] or [Path('patches')]
+    default = Path(__file__).resolve().parents[1] / 'patches'
+    roots = [Path(argument) for argument in argv[1:]] or [default]
     files = sorted({path for root in roots
                     for path in (root.rglob('*.patch') if root.is_dir()
                                  else [root])})

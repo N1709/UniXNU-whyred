@@ -324,3 +324,9 @@ mistake.
 counts, and the package workflow runs it as a `patch integrity` step before
 `package`. A count that does not match fails the run instead of shipping a
 tree that only looks right.
+
+Run `42927605752` failed in that new step rather than in the build: the script
+defaulted to a relative `patches/`, but the workflow calls it from the
+workspace root, where the directory is `device/patches`. The default root now
+comes from the script's own location, so both the local call and the workflow
+see the same files.
